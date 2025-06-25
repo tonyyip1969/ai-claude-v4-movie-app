@@ -153,7 +153,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
         {/* Movie Poster */}
         <div className="lg:col-span-1">
-          <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-gray-800 group">
+          <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-gray-800 group">
             {!imageError ? (
               <Image
                 src={movie.coverUrl}

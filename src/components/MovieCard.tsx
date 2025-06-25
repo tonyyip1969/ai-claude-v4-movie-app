@@ -44,7 +44,7 @@ export default function MovieCard({ movie, onFavoriteToggle, onRatingUpdate, cla
     )}>
       <Link href={`/movie/${movie.id}`} className="block">
         {/* Image Container */}
-        <div className="relative aspect-[2/3] overflow-hidden">
+        <div className="relative aspect-[16/9] overflow-hidden">
           {imageLoading && (
             <div className="absolute inset-0 skeleton rounded-lg" />
           )}

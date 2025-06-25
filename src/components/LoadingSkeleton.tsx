@@ -14,7 +14,7 @@ export function MovieCardSkeleton({ className }: { className?: string }) {
       className
     )}>
       {/* Image skeleton */}
-      <div className="aspect-[2/3] bg-gray-700 skeleton" />
+      <div className="aspect-[16/9] bg-gray-700 skeleton" />
       
       {/* Content skeleton */}
       <div className="p-4 space-y-3">
@@ -78,7 +78,7 @@ export function MovieDetailSkeleton({ className }: { className?: string }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Poster */}
         <div className="lg:col-span-1">
-          <div className="aspect-[2/3] bg-gray-700 rounded-xl skeleton" />
+          <div className="aspect-[16/9] bg-gray-700 rounded-xl skeleton" />
         </div>
         
         {/* Details */}
