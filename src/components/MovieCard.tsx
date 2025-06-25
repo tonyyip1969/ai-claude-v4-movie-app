@@ -6,14 +6,16 @@ import Link from 'next/link';
 import { Heart, Play, Star } from 'lucide-react';
 import { Movie } from '@/types/movie';
 import { cn, truncateText } from '@/lib/utils';
+import RatingComponent from './RatingComponent';
 
 interface MovieCardProps {
   movie: Movie;
   onFavoriteToggle?: (id: number) => void;
+  onRatingUpdate?: (id: number, rating: number) => void;
   className?: string;
 }
 
-export default function MovieCard({ movie, onFavoriteToggle, className }: MovieCardProps) {
+export default function MovieCard({ movie, onFavoriteToggle, onRatingUpdate, className }: MovieCardProps) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
@@ -26,25 +28,10 @@ export default function MovieCard({ movie, onFavoriteToggle, className }: MovieC
     }
   };
 
-  const renderStars = (rating: number) => {
-    const fullStars = Math.floor(rating / 2);
-    const hasHalfStar = rating % 2 !== 0;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-    
-    return (
-      <div className="flex items-center space-x-0.5">
-        {[...Array(fullStars)].map((_, i) => (
-          <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-        ))}
-        {hasHalfStar && (
-          <Star className="w-3 h-3 fill-yellow-400/50 text-yellow-400" />
-        )}
-        {[...Array(emptyStars)].map((_, i) => (
-          <Star key={`empty-${i}`} className="w-3 h-3 text-gray-600" />
-        ))}
-        <span className="text-xs text-gray-400 ml-1">({rating}/10)</span>
-      </div>
-    );
+  const handleRatingChange = async (rating: number) => {
+    if (onRatingUpdate) {
+      await onRatingUpdate(movie.id, rating);
+    }
   };
 
   return (
@@ -138,9 +125,14 @@ export default function MovieCard({ movie, onFavoriteToggle, className }: MovieC
             </p>
           </div>
 
-          {/* Rating stars */}
+          {/* Rating */}
           <div className="flex items-center justify-between">
-            {renderStars(movie.rating)}
+            <RatingComponent
+              rating={movie.rating}
+              onRatingChange={handleRatingChange}
+              size="sm"
+              showValue={true}
+            />
             <span className="text-xs text-gray-500">
               {new Date(movie.publishedAt).getFullYear()}
             </span>

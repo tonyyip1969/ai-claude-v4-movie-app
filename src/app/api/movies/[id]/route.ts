@@ -66,6 +66,45 @@ export async function PATCH(
       });
     }
 
+    if (body.action === 'updateRating') {
+      const { rating } = body;
+      
+      if (!rating || typeof rating !== 'number' || rating < 1 || rating > 10) {
+        return NextResponse.json(
+          { error: 'Rating must be a number between 1 and 10' },
+          { status: 400 }
+        );
+      }
+
+      const movie = movieDB.getMovieById(id);
+      if (!movie) {
+        return NextResponse.json(
+          { error: 'Movie not found' },
+          { status: 404 }
+        );
+      }
+
+      try {
+        const success = movieDB.updateRating(id, rating);
+        if (success) {
+          return NextResponse.json({ 
+            rating,
+            message: `Movie rating updated to ${rating}/10`
+          });
+        } else {
+          return NextResponse.json(
+            { error: 'Failed to update rating' },
+            { status: 500 }
+          );
+        }
+      } catch (error: any) {
+        return NextResponse.json(
+          { error: error.message || 'Failed to update rating' },
+          { status: 400 }
+        );
+      }
+    }
+
     return NextResponse.json(
       { error: 'Invalid action' },
       { status: 400 }

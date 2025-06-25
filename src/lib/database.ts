@@ -266,6 +266,22 @@ class MovieDatabase {
     return movie.isFavourite; // Return original status if update failed
   }
 
+  // Update movie rating
+  updateRating(id: number, rating: number): boolean {
+    // Validate rating range
+    if (rating < 1 || rating > 10) {
+      throw new Error('Rating must be between 1 and 10');
+    }
+    
+    const movie = this.getMovieById(id);
+    if (!movie) return false;
+    
+    const result = this.db.prepare('UPDATE movies SET rating = ? WHERE id = ?').run(rating, id);
+    
+    // Verify the update was successful
+    return result.changes > 0;
+  }
+
   // Close database connection
   close() {
     this.db.close();

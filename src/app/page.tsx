@@ -7,6 +7,7 @@ import SearchBar from '@/components/SearchBar';
 import Pagination from '@/components/Pagination';
 import { MovieGridSkeleton, SearchSkeleton } from '@/components/LoadingSkeleton';
 import { Film, Search as SearchIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function HomePage() {
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -16,6 +17,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [searchMode, setSearchMode] = useState(false);
   const [favoriteChanging, setFavoriteChanging] = useState<number | null>(null);
+  const [ratingChanging, setRatingChanging] = useState<number | null>(null);
 
   // Fetch movies for current page
   const fetchMovies = async (page: number) => {
@@ -110,6 +112,53 @@ export default function HomePage() {
     }
   };
 
+  // Handle rating update
+  const handleRatingUpdate = async (movieId: number, rating: number) => {
+    setRatingChanging(movieId);
+    
+    try {
+      const response = await fetch(`/api/movies/${movieId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'updateRating', rating }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        console.log('Rating updated successfully:', movieId, 'New rating:', rating);
+        
+        // Update the movie in current state
+        if (searchMode) {
+          setSearchResults(prev => 
+            prev.map(movie => 
+              movie.id === movieId 
+                ? { ...movie, rating } 
+                : movie
+            )
+          );
+        } else {
+          setMovies(prev => 
+            prev.map(movie => 
+              movie.id === movieId 
+                ? { ...movie, rating } 
+                : movie
+            )
+          );
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to update rating:', errorData);
+      }
+    } catch (error) {
+      console.error('Error updating rating:', error);
+    } finally {
+      setRatingChanging(null);
+    }
+  };
+
   const displayMovies = searchMode ? searchResults : movies;
   const showPagination = !searchMode && !loading;
 
@@ -182,7 +231,11 @@ export default function HomePage() {
                 key={movie.id}
                 movie={movie}
                 onFavoriteToggle={handleFavoriteToggle}
-                className={favoriteChanging === movie.id ? 'opacity-70 pointer-events-none' : ''}
+                onRatingUpdate={handleRatingUpdate}
+                className={cn(
+                  favoriteChanging === movie.id && 'opacity-70 pointer-events-none',
+                  ratingChanging === movie.id && 'opacity-70'
+                )}
               />
             ))}
           </div>

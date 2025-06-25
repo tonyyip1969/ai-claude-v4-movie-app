@@ -5,11 +5,13 @@ import { Movie } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
 import { MovieGridSkeleton } from '@/components/LoadingSkeleton';
 import { Heart, HeartOff } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function FavoritesPage() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [favoriteChanging, setFavoriteChanging] = useState<number | null>(null);
+  const [ratingChanging, setRatingChanging] = useState<number | null>(null);
 
   const fetchFavorites = async () => {
     setLoading(true);
@@ -53,6 +55,39 @@ export default function FavoritesPage() {
       console.error('Error toggling favorite:', error);
     } finally {
       setFavoriteChanging(null);
+    }
+  };
+
+  // Handle rating update
+  const handleRatingUpdate = async (movieId: number, rating: number) => {
+    setRatingChanging(movieId);
+    
+    try {
+      const response = await fetch(`/api/movies/${movieId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'updateRating', rating }),
+      });
+
+      if (response.ok) {
+        // Update the movie rating in current state
+        setMovies(prev => 
+          prev.map(movie => 
+            movie.id === movieId 
+              ? { ...movie, rating } 
+              : movie
+          )
+        );
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to update rating:', errorData);
+      }
+    } catch (error) {
+      console.error('Error updating rating:', error);
+    } finally {
+      setRatingChanging(null);
     }
   };
 
@@ -103,6 +138,7 @@ export default function FavoritesPage() {
                 key={movie.id}
                 movie={movie}
                 onFavoriteToggle={handleFavoriteToggle}
+                onRatingUpdate={handleRatingUpdate}
                 className={favoriteChanging === movie.id ? 'opacity-70 pointer-events-none' : ''}
               />
             ))}

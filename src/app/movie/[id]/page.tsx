@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ArrowLeft, Heart, Play, Star, Calendar, Code, Film } from 'lucide-react';
 import { Movie } from '@/types/movie';
 import VideoPlayer from '@/components/VideoPlayer';
+import RatingComponent from '@/components/RatingComponent';
 import { MovieDetailSkeleton } from '@/components/LoadingSkeleton';
 import { cn, formatDate, truncateText } from '@/lib/utils';
 
@@ -20,6 +21,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [showVideo, setShowVideo] = useState(false);
   const [favoriteChanging, setFavoriteChanging] = useState(false);
+  const [ratingChanging, setRatingChanging] = useState(false);
   const [imageError, setImageError] = useState(false);
   const router = useRouter();
 
@@ -72,25 +74,34 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
     }
   };
 
-  const renderStars = (rating: number) => {
-    const fullStars = Math.floor(rating / 2);
-    const hasHalfStar = rating % 2 !== 0;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+  const handleRatingChange = async (newRating: number) => {
+    if (!movie || ratingChanging) return;
     
-    return (
-      <div className="flex items-center space-x-1">
-        {[...Array(fullStars)].map((_, i) => (
-          <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-        ))}
-        {hasHalfStar && (
-          <Star className="w-5 h-5 fill-yellow-400/50 text-yellow-400" />
-        )}
-        {[...Array(emptyStars)].map((_, i) => (
-          <Star key={`empty-${i}`} className="w-5 h-5 text-gray-600" />
-        ))}
-        <span className="text-sm text-gray-400 ml-2">({rating}/10)</span>
-      </div>
-    );
+    setRatingChanging(true);
+    try {
+      const response = await fetch(`/api/movies/${movie.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          action: 'updateRating',
+          rating: newRating 
+        }),
+      });
+
+      if (response.ok) {
+        const { rating } = await response.json();
+        setMovie(prev => prev ? { ...prev, rating } : null);
+      } else {
+        const errorData = await response.json();
+        console.error('Error updating rating:', errorData.error);
+      }
+    } catch (error) {
+      console.error('Error updating rating:', error);
+    } finally {
+      setRatingChanging(false);
+    }
   };
 
   if (loading) {
@@ -197,9 +208,21 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
             </div>
 
             {/* Rating */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <h3 className="text-lg font-semibold text-gray-300">Rating</h3>
-              {renderStars(movie.rating)}
+              <div className="flex flex-col space-y-2">
+                <RatingComponent
+                  rating={movie.rating}
+                  onRatingChange={handleRatingChange}
+                  size="lg"
+                  showValue={true}
+                  className={ratingChanging ? "opacity-50" : ""}
+                />
+                {ratingChanging && (
+                  <p className="text-sm text-gray-500">Updating rating...</p>
+                )}
+                <p className="text-xs text-gray-500">Click the stars to rate this movie</p>
+              </div>
             </div>
 
             {/* Description */}
