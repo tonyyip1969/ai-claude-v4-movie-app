@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, X, Loader2 } from 'lucide-react';
 import { Movie } from '@/types/movie';
 import { debounce } from '@/lib/utils';
@@ -22,12 +22,22 @@ export default function SearchBar({
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  
+  // Use ref to store the latest callback functions to avoid recreating debounced function
+  const onResultsRef = useRef(onResults);
+  const onClearRef = useRef(onClear);
+  
+  // Update refs when props change
+  useEffect(() => {
+    onResultsRef.current = onResults;
+    onClearRef.current = onClear;
+  }, [onResults, onClear]);
 
-  // Debounced search function
+  // Debounced search function - now stable since it doesn't depend on changing props
   const debouncedSearch = useCallback(
     debounce(async (searchQuery: string) => {
       if (!searchQuery.trim()) {
-        onClear();
+        onClearRef.current();
         setIsLoading(false);
         return;
       }
@@ -38,19 +48,19 @@ export default function SearchBar({
         const data = await response.json();
         
         if (response.ok) {
-          onResults(data.movies || []);
+          onResultsRef.current(data.movies || []);
         } else {
           console.error('Search error:', data.error);
-          onResults([]);
+          onResultsRef.current([]);
         }
       } catch (error) {
         console.error('Search error:', error);
-        onResults([]);
+        onResultsRef.current([]);
       } finally {
         setIsLoading(false);
       }
     }, 300),
-    [onResults, onClear]
+    [] // No dependencies since we use refs
   );
 
   useEffect(() => {
@@ -59,7 +69,7 @@ export default function SearchBar({
 
   const handleClear = () => {
     setQuery('');
-    onClear();
+    onClearRef.current();
   };
 
   const handleSubmit = (e: React.FormEvent) => {

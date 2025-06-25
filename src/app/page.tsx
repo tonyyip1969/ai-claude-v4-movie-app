@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Movie, PaginatedMovies } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
 import SearchBar from '@/components/SearchBar';
@@ -53,16 +53,16 @@ export default function HomePage() {
   };
 
   // Handle search results
-  const handleSearchResults = (results: Movie[]) => {
+  const handleSearchResults = useCallback((results: Movie[]) => {
     setSearchResults(results);
     setSearchMode(true);
-  };
+  }, []);
 
   // Handle search clear
-  const handleSearchClear = () => {
+  const handleSearchClear = useCallback(() => {
     setSearchResults([]);
     setSearchMode(false);
-  };
+  }, []);
 
   // Handle favorite toggle
   const handleFavoriteToggle = async (movieId: number) => {

@@ -157,7 +157,7 @@ export default function Sidebar({ className }: SidebarProps) {
           "fixed inset-y-0 left-0 bg-gradient-to-b from-gray-900 to-gray-800 border-r border-gray-700 transition-all duration-300 z-50",
           // Desktop behavior
           "hidden lg:block",
-          isCollapsed ? "lg:w-20" : "lg:w-80",
+          isCollapsed ? "lg:w-20" : "lg:w-72",
           // Mobile behavior
           "lg:translate-x-0",
           isMobileOpen ? "block w-80 translate-x-0" : "translate-x-full",
