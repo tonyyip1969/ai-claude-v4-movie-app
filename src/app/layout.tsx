@@ -45,9 +45,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}
       >
-        <div className="flex min-h-screen">
+        <div className="min-h-screen">
           <Sidebar />
-          <main className="flex-1 lg:ml-0">
+          <main className="lg:ml-80">
             <div className="container mx-auto px-4 py-8 lg:px-8 lg:py-12 max-w-7xl">
               {children}
             </div>

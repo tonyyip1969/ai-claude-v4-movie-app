@@ -154,7 +154,7 @@ export default function Sidebar({ className }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:sticky top-0 h-screen bg-gradient-to-b from-gray-900 to-gray-800 border-r border-gray-700 transition-all duration-300 z-50",
+          "fixed inset-y-0 left-0 bg-gradient-to-b from-gray-900 to-gray-800 border-r border-gray-700 transition-all duration-300 z-50",
           // Desktop behavior
           "hidden lg:block",
           isCollapsed ? "lg:w-20" : "lg:w-80",
@@ -164,7 +164,9 @@ export default function Sidebar({ className }: SidebarProps) {
           className
         )}
       >
-        {sidebarContent}
+        <div className="flex flex-col h-full overflow-y-auto">
+          {sidebarContent}
+        </div>
       </aside>
     </>
   );
