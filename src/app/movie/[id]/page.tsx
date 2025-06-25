@@ -138,15 +138,31 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
 
   return (
     <div className="space-y-8">
-      {/* Back Button */}
-      <div className="flex items-center space-x-4">
+      {/* Navigation Header */}
+      <div className="flex items-center justify-between">
         <button
           onClick={() => router.back()}
-          className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors group"
+          className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors group bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-700/50"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           <span>Back</span>
         </button>
+        
+        {/* Quick Navigation */}
+        <div className="flex items-center space-x-2">
+          <Link
+            href="/"
+            className="text-gray-400 hover:text-white transition-colors bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-700/50"
+          >
+            Home
+          </Link>
+          <Link
+            href="/favorites"
+            className="text-gray-400 hover:text-white transition-colors bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-700/50"
+          >
+            Favorites
+          </Link>
+        </div>
       </div>
 
       {/* Hero Section */}
