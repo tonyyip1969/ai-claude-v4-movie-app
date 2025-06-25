@@ -1,101 +1,224 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect } from 'react';
+import { Movie, PaginatedMovies } from '@/types/movie';
+import MovieCard from '@/components/MovieCard';
+import SearchBar from '@/components/SearchBar';
+import Pagination from '@/components/Pagination';
+import { MovieGridSkeleton, SearchSkeleton } from '@/components/LoadingSkeleton';
+import { Film, Search as SearchIcon } from 'lucide-react';
+
+export default function HomePage() {
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [searchResults, setSearchResults] = useState<Movie[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [searchMode, setSearchMode] = useState(false);
+  const [favoriteChanging, setFavoriteChanging] = useState<number | null>(null);
+
+  // Fetch movies for current page
+  const fetchMovies = async (page: number) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/movies?page=${page}&limit=20`);
+      const data: PaginatedMovies = await response.json();
+      
+      if (response.ok) {
+        setMovies(data.movies);
+        setTotalPages(data.totalPages);
+        setCurrentPage(data.currentPage);
+      } else {
+        console.error('Failed to fetch movies');
+      }
+    } catch (error) {
+      console.error('Error fetching movies:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load initial movies
+  useEffect(() => {
+    fetchMovies(1);
+  }, []);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchMovies(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle search results
+  const handleSearchResults = (results: Movie[]) => {
+    setSearchResults(results);
+    setSearchMode(true);
+  };
+
+  // Handle search clear
+  const handleSearchClear = () => {
+    setSearchResults([]);
+    setSearchMode(false);
+  };
+
+  // Handle favorite toggle
+  const handleFavoriteToggle = async (movieId: number) => {
+    setFavoriteChanging(movieId);
+    
+    try {
+      const response = await fetch(`/api/movies/${movieId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'toggleFavorite' }),
+      });
+
+      if (response.ok) {
+        const { isFavourite } = await response.json();
+        
+        // Update the movie in current state
+        if (searchMode) {
+          setSearchResults(prev => 
+            prev.map(movie => 
+              movie.id === movieId 
+                ? { ...movie, isFavourite } 
+                : movie
+            )
+          );
+        } else {
+          setMovies(prev => 
+            prev.map(movie => 
+              movie.id === movieId 
+                ? { ...movie, isFavourite } 
+                : movie
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    } finally {
+      setFavoriteChanging(null);
+    }
+  };
+
+  const displayMovies = searchMode ? searchResults : movies;
+  const showPagination = !searchMode && !loading;
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="text-center space-y-6">
+        <div className="flex items-center justify-center space-x-3 mb-4">
+          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl">
+            <Film className="w-7 h-7 text-white" />
+          </div>
+          <h1 className="text-4xl lg:text-5xl font-bold text-white">
+            Discover Amazing{' '}
+            <span className="text-gradient">Movies</span>
+          </h1>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+        
+        <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
+          Explore our vast collection of movies with stunning visuals and immersive experiences. 
+          Find your next favorite film in our carefully curated selection.
+        </p>
+
+        {/* Search Bar */}
+        <div className="max-w-2xl mx-auto">
+          <SearchBar
+            onResults={handleSearchResults}
+            onClear={handleSearchClear}
+            placeholder="Search for movies by title or description..."
+            className="w-full"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+        </div>
+      </div>
+
+      {/* Content Section */}
+      <div className="space-y-6">
+        {/* Section Header */}
+        {!loading && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <SearchIcon className="w-6 h-6 text-primary-400" />
+              <h2 className="text-2xl font-bold text-white">
+                {searchMode ? 'Search Results' : 'Latest Movies'}
+              </h2>
+              {searchMode && (
+                <span className="bg-primary-500/20 text-primary-300 px-3 py-1 rounded-full text-sm">
+                  {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
+                </span>
+              )}
+            </div>
+            
+            {!searchMode && (
+              <p className="text-gray-400 text-sm">
+                Page {currentPage} of {totalPages}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && !searchMode && <MovieGridSkeleton />}
+        
+        {/* Search Loading State */}
+        {loading && searchMode && <SearchSkeleton />}
+
+        {/* Movies Grid */}
+        {!loading && displayMovies.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {displayMovies.map((movie) => (
+              <MovieCard
+                key={movie.id}
+                movie={movie}
+                onFavoriteToggle={handleFavoriteToggle}
+                className={favoriteChanging === movie.id ? 'opacity-70 pointer-events-none' : ''}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* No Results */}
+        {!loading && displayMovies.length === 0 && searchMode && (
+          <div className="text-center py-16 space-y-4">
+            <div className="w-20 h-20 mx-auto bg-gray-800 rounded-full flex items-center justify-center">
+              <SearchIcon className="w-10 h-10 text-gray-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-300">No movies found</h3>
+            <p className="text-gray-500 max-w-md mx-auto">
+              We couldn't find any movies matching your search. Try different keywords or browse our collection.
+            </p>
+          </div>
+        )}
+
+        {/* No Movies at All */}
+        {!loading && displayMovies.length === 0 && !searchMode && (
+          <div className="text-center py-16 space-y-4">
+            <div className="w-20 h-20 mx-auto bg-gray-800 rounded-full flex items-center justify-center">
+              <Film className="w-10 h-10 text-gray-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-300">No movies available</h3>
+            <p className="text-gray-500 max-w-md mx-auto">
+              There are no movies in the database yet. Please check back later.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {showPagination && totalPages > 1 && (
+        <div className="pt-8 border-t border-gray-800">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        </div>
+      )}
     </div>
   );
 }
