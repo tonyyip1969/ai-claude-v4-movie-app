@@ -76,7 +76,10 @@ export default function HomePage() {
       });
 
       if (response.ok) {
-        const { isFavourite } = await response.json();
+        const data = await response.json();
+        const { isFavourite } = data;
+        
+        console.log('Favorite toggled successfully:', movieId, 'New status:', isFavourite);
         
         // Update the movie in current state
         if (searchMode) {
@@ -96,6 +99,9 @@ export default function HomePage() {
             )
           );
         }
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to toggle favorite:', errorData);
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);

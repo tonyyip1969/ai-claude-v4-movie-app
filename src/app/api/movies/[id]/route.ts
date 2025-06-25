@@ -51,8 +51,19 @@ export async function PATCH(
     const body = await request.json();
     
     if (body.action === 'toggleFavorite') {
+      const movie = movieDB.getMovieById(id);
+      if (!movie) {
+        return NextResponse.json(
+          { error: 'Movie not found' },
+          { status: 404 }
+        );
+      }
+      
       const newStatus = movieDB.toggleFavorite(id);
-      return NextResponse.json({ isFavourite: newStatus });
+      return NextResponse.json({ 
+        isFavourite: newStatus,
+        message: `Movie ${newStatus ? 'added to' : 'removed from'} favorites`
+      });
     }
 
     return NextResponse.json(

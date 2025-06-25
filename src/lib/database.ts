@@ -183,39 +183,71 @@ class MovieDatabase {
       SELECT * FROM movies 
       ORDER BY publishedAt DESC 
       LIMIT ? OFFSET ?
-    `).all(limit, offset) as Movie[];
+    `).all(limit, offset) as any[];
+    
+    // Convert SQLite integers to booleans for isFavourite
+    const convertedMovies = movies.map(movie => ({
+      ...movie,
+      isFavourite: Boolean(movie.isFavourite)
+    })) as Movie[];
     
     const totalResult = this.db.prepare('SELECT COUNT(*) as count FROM movies').get() as { count: number };
     const total = totalResult.count;
     const totalPages = Math.ceil(total / limit);
     
-    return { movies, total, totalPages };
+    return { movies: convertedMovies, total, totalPages };
   }
 
   // Get favorite movies
   getFavoriteMovies(): Movie[] {
-    return this.db.prepare('SELECT * FROM movies WHERE isFavourite = 1 ORDER BY title').all() as Movie[];
+    const movies = this.db.prepare('SELECT * FROM movies WHERE isFavourite = 1 ORDER BY title').all() as any[];
+    
+    // Convert SQLite integers to booleans for isFavourite
+    return movies.map(movie => ({
+      ...movie,
+      isFavourite: Boolean(movie.isFavourite)
+    })) as Movie[];
   }
 
   // Get random movie
   getRandomMovie(): Movie | null {
-    const result = this.db.prepare('SELECT * FROM movies ORDER BY RANDOM() LIMIT 1').get() as Movie;
-    return result || null;
+    const result = this.db.prepare('SELECT * FROM movies ORDER BY RANDOM() LIMIT 1').get() as any;
+    
+    if (!result) return null;
+    
+    // Convert SQLite integer to boolean for isFavourite
+    return {
+      ...result,
+      isFavourite: Boolean(result.isFavourite)
+    } as Movie;
   }
 
   // Get movie by ID
   getMovieById(id: number): Movie | null {
-    const result = this.db.prepare('SELECT * FROM movies WHERE id = ?').get(id) as Movie;
-    return result || null;
+    const result = this.db.prepare('SELECT * FROM movies WHERE id = ?').get(id) as any;
+    
+    if (!result) return null;
+    
+    // Convert SQLite integer to boolean for isFavourite
+    return {
+      ...result,
+      isFavourite: Boolean(result.isFavourite)
+    } as Movie;
   }
 
   // Search movies
   searchMovies(query: string): Movie[] {
-    return this.db.prepare(`
+    const movies = this.db.prepare(`
       SELECT * FROM movies 
       WHERE title LIKE ? OR description LIKE ? 
       ORDER BY title
-    `).all(`%${query}%`, `%${query}%`) as Movie[];
+    `).all(`%${query}%`, `%${query}%`) as any[];
+    
+    // Convert SQLite integers to booleans for isFavourite
+    return movies.map(movie => ({
+      ...movie,
+      isFavourite: Boolean(movie.isFavourite)
+    })) as Movie[];
   }
 
   // Toggle favorite status
@@ -224,8 +256,14 @@ class MovieDatabase {
     if (!movie) return false;
     
     const newStatus = !movie.isFavourite;
-    this.db.prepare('UPDATE movies SET isFavourite = ? WHERE id = ?').run(newStatus, id);
-    return newStatus;
+    const result = this.db.prepare('UPDATE movies SET isFavourite = ? WHERE id = ?').run(newStatus ? 1 : 0, id);
+    
+    // Verify the update was successful
+    if (result.changes > 0) {
+      return newStatus;
+    }
+    
+    return movie.isFavourite; // Return original status if update failed
   }
 
   // Close database connection

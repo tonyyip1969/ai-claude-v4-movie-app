@@ -107,7 +107,7 @@ export default function MovieCard({ movie, onFavoriteToggle, className }: MovieC
               "absolute top-3 right-3 p-2 rounded-full transition-all duration-300",
               "bg-black/50 backdrop-blur-sm border border-white/20",
               "hover:bg-black/70 hover:scale-110 active:scale-95",
-              "opacity-0 group-hover:opacity-100"
+              "opacity-100 md:opacity-0 md:group-hover:opacity-100" // Always visible on mobile, hover on desktop
             )}
             aria-label={movie.isFavourite ? "Remove from favorites" : "Add to favorites"}
           >
