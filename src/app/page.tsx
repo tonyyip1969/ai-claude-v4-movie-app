@@ -159,6 +159,54 @@ export default function HomePage() {
     }
   };
 
+  // Handle watchlist toggle
+  const handleWatchlistToggle = async (movieId: number) => {
+    setFavoriteChanging(movieId); // Reuse the same loading state
+    
+    try {
+      const response = await fetch(`/api/movies/${movieId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'toggleWatchlist' }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const { isInWatchlist } = data;
+        
+        console.log('Watchlist toggled successfully:', movieId, 'New status:', isInWatchlist);
+        
+        // Update the movie in current state
+        if (searchMode) {
+          setSearchResults(prev => 
+            prev.map(movie => 
+              movie.id === movieId 
+                ? { ...movie, isInWatchlist } 
+                : movie
+            )
+          );
+        } else {
+          setMovies(prev => 
+            prev.map(movie => 
+              movie.id === movieId 
+                ? { ...movie, isInWatchlist } 
+                : movie
+            )
+          );
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to toggle watchlist:', errorData);
+      }
+    } catch (error) {
+      console.error('Error toggling watchlist:', error);
+    } finally {
+      setFavoriteChanging(null);
+    }
+  };
+
   const displayMovies = searchMode ? searchResults : movies;
   const showPagination = !searchMode && !loading;
 
@@ -232,6 +280,7 @@ export default function HomePage() {
                 movie={movie}
                 onFavoriteToggle={handleFavoriteToggle}
                 onRatingUpdate={handleRatingUpdate}
+                onWatchlistToggle={handleWatchlistToggle}
                 className={cn(
                   favoriteChanging === movie.id && 'opacity-70 pointer-events-none',
                   ratingChanging === movie.id && 'opacity-70'

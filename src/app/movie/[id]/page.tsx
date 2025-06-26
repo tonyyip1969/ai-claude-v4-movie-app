@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Heart, Play, Star, Calendar, Code, Film, X } from 'lucide-react';
+import { ArrowLeft, Heart, Play, Star, Calendar, Code, Film, X, Clock } from 'lucide-react';
 import { Movie } from '@/types/movie';
 import VideoPlayer from '@/components/VideoPlayer';
 import RatingComponent from '@/components/RatingComponent';
@@ -21,6 +21,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [showVideo, setShowVideo] = useState(false);
   const [favoriteChanging, setFavoriteChanging] = useState(false);
+  const [watchlistChanging, setWatchlistChanging] = useState(false);
   const [ratingChanging, setRatingChanging] = useState(false);
   const [imageError, setImageError] = useState(false);
   const router = useRouter();
@@ -71,6 +72,30 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
       console.error('Error toggling favorite:', error);
     } finally {
       setFavoriteChanging(false);
+    }
+  };
+
+  const handleWatchlistToggle = async () => {
+    if (!movie || watchlistChanging) return;
+    
+    setWatchlistChanging(true);
+    try {
+      const response = await fetch(`/api/movies/${movie.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'toggleWatchlist' }),
+      });
+
+      if (response.ok) {
+        const { isInWatchlist } = await response.json();
+        setMovie(prev => prev ? { ...prev, isInWatchlist } : null);
+      }
+    } catch (error) {
+      console.error('Error toggling watchlist:', error);
+    } finally {
+      setWatchlistChanging(false);
     }
   };
 
@@ -192,7 +217,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-4">
               <button
                 onClick={() => setShowVideo(true)}
                 className="flex items-center justify-center space-x-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold px-8 py-4 rounded-lg transition-colors"
@@ -201,30 +226,57 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                 <span>Play Movie</span>
               </button>
 
-              <button
-                onClick={handleFavoriteToggle}
-                disabled={favoriteChanging}
-                className={cn(
-                  "flex items-center justify-center space-x-2 border-2 font-semibold px-8 py-4 rounded-lg transition-all",
-                  movie.isFavourite
-                    ? "bg-red-600/20 border-red-500 text-red-400 hover:bg-red-600/30"
-                    : "border-white/30 text-white hover:bg-white/10",
-                  favoriteChanging && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <Heart className={cn(
-                  "w-5 h-5 transition-colors",
-                  movie.isFavourite ? "fill-red-400 text-red-400" : ""
-                )} />
-                <span>
-                  {favoriteChanging 
-                    ? 'Updating...' 
-                    : movie.isFavourite 
-                      ? 'Remove from Favorites' 
-                      : 'Add to Favorites'
-                  }
-                </span>
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={handleFavoriteToggle}
+                  disabled={favoriteChanging}
+                  className={cn(
+                    "flex items-center justify-center space-x-2 border-2 font-semibold px-8 py-4 rounded-lg transition-all",
+                    movie.isFavourite
+                      ? "bg-red-600/20 border-red-500 text-red-400 hover:bg-red-600/30"
+                      : "border-white/30 text-white hover:bg-white/10",
+                    favoriteChanging && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <Heart className={cn(
+                    "w-5 h-5 transition-colors",
+                    movie.isFavourite ? "fill-red-400 text-red-400" : ""
+                  )} />
+                  <span>
+                    {favoriteChanging 
+                      ? 'Updating...' 
+                      : movie.isFavourite 
+                        ? 'Remove from Favorites' 
+                        : 'Add to Favorites'
+                    }
+                  </span>
+                </button>
+
+                <button
+                  onClick={handleWatchlistToggle}
+                  disabled={watchlistChanging}
+                  className={cn(
+                    "flex items-center justify-center space-x-2 border-2 font-semibold px-8 py-4 rounded-lg transition-all",
+                    movie.isInWatchlist
+                      ? "bg-blue-600/20 border-blue-500 text-blue-400 hover:bg-blue-600/30"
+                      : "border-white/30 text-white hover:bg-white/10",
+                    watchlistChanging && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <Clock className={cn(
+                    "w-5 h-5 transition-colors",
+                    movie.isInWatchlist ? "fill-blue-400 text-blue-400" : ""
+                  )} />
+                  <span>
+                    {watchlistChanging 
+                      ? 'Updating...' 
+                      : movie.isInWatchlist 
+                        ? 'Remove from Watchlist' 
+                        : 'Add to Watchlist'
+                    }
+                  </span>
+                </button>
+              </div>
             </div>
 
             {/* Interactive Rating */}
@@ -306,6 +358,10 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                 <div>
                   <span className="text-gray-400">Favorite:</span>
                   <span className="text-white ml-2">{movie.isFavourite ? 'Yes' : 'No'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">In Watchlist:</span>
+                  <span className="text-white ml-2">{movie.isInWatchlist ? 'Yes' : 'No'}</span>
                 </div>
               </div>
             </div>

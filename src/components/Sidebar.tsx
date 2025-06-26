@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Heart, Shuffle, Menu, X, Film } from 'lucide-react';
+import { Home, Heart, Shuffle, Menu, X, Film, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Favourites', href: '/favorites', icon: Heart },
+  { name: 'Watch List', href: '/watchlist', icon: Clock },
   { name: 'Random', href: '/random', icon: Shuffle },
 ];
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Play, Star } from 'lucide-react';
+import { Heart, Play, Star, Clock } from 'lucide-react';
 import { Movie } from '@/types/movie';
 import { cn, truncateText } from '@/lib/utils';
 import RatingComponent from './RatingComponent';
@@ -11,11 +11,12 @@ import RatingComponent from './RatingComponent';
 interface MovieCardProps {
   movie: Movie;
   onFavoriteToggle?: (id: number) => void;
+  onWatchlistToggle?: (id: number) => void;
   onRatingUpdate?: (id: number, rating: number) => void;
   className?: string;
 }
 
-export default function MovieCard({ movie, onFavoriteToggle, onRatingUpdate, className }: MovieCardProps) {
+export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, onRatingUpdate, className }: MovieCardProps) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
@@ -25,6 +26,15 @@ export default function MovieCard({ movie, onFavoriteToggle, onRatingUpdate, cla
     
     if (onFavoriteToggle) {
       onFavoriteToggle(movie.id);
+    }
+  };
+
+  const handleWatchlistClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (onWatchlistToggle) {
+      onWatchlistToggle(movie.id);
     }
   };
 
@@ -87,26 +97,50 @@ export default function MovieCard({ movie, onFavoriteToggle, onRatingUpdate, cla
             </div>
           </div>
 
-          {/* Favorite button */}
-          <button
-            onClick={handleFavoriteClick}
-            className={cn(
-              "absolute top-3 right-3 p-2 rounded-full transition-all duration-300",
-              "bg-black/50 backdrop-blur-sm border border-white/20",
-              "hover:bg-black/70 hover:scale-110 active:scale-95",
-              "opacity-100 md:opacity-0 md:group-hover:opacity-100" // Always visible on mobile, hover on desktop
-            )}
-            aria-label={movie.isFavourite ? "Remove from favorites" : "Add to favorites"}
-          >
-            <Heart
+          {/* Action buttons */}
+          <div className="absolute top-3 right-3 flex flex-col space-y-2">
+            {/* Favorite button */}
+            <button
+              onClick={handleFavoriteClick}
               className={cn(
-                "w-4 h-4 transition-colors duration-300",
-                movie.isFavourite 
-                  ? "text-red-500 fill-red-500" 
-                  : "text-white hover:text-red-400"
+                "p-2 rounded-full transition-all duration-300",
+                "bg-black/50 backdrop-blur-sm border border-white/20",
+                "hover:bg-black/70 hover:scale-110 active:scale-95",
+                "opacity-100 md:opacity-0 md:group-hover:opacity-100" // Always visible on mobile, hover on desktop
               )}
-            />
-          </button>
+              aria-label={movie.isFavourite ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Heart
+                className={cn(
+                  "w-4 h-4 transition-colors duration-300",
+                  movie.isFavourite 
+                    ? "text-red-500 fill-red-500" 
+                    : "text-white hover:text-red-400"
+                )}
+              />
+            </button>
+
+            {/* Watchlist button */}
+            <button
+              onClick={handleWatchlistClick}
+              className={cn(
+                "p-2 rounded-full transition-all duration-300",
+                "bg-black/50 backdrop-blur-sm border border-white/20",
+                "hover:bg-black/70 hover:scale-110 active:scale-95",
+                "opacity-100 md:opacity-0 md:group-hover:opacity-100" // Always visible on mobile, hover on desktop
+              )}
+              aria-label={movie.isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+            >
+              <Clock
+                className={cn(
+                  "w-4 h-4 transition-colors duration-300",
+                  movie.isInWatchlist 
+                    ? "text-blue-500 fill-blue-500" 
+                    : "text-white hover:text-blue-400"
+                )}
+              />
+            </button>
+          </div>
 
           {/* Rating badge */}
           <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1 border border-white/20">
@@ -138,15 +172,23 @@ export default function MovieCard({ movie, onFavoriteToggle, onRatingUpdate, cla
             </span>
           </div>
 
-          {/* Movie code */}
+          {/* Movie code and status */}
           <div className="flex items-center justify-between pt-2 border-t border-gray-700">
             <span className="text-xs text-gray-500 font-mono">{movie.code}</span>
-            {movie.isFavourite && (
-              <div className="flex items-center space-x-1 text-red-400">
-                <Heart className="w-3 h-3 fill-current" />
-                <span className="text-xs">Favorite</span>
-              </div>
-            )}
+            <div className="flex items-center space-x-3">
+              {movie.isFavourite && (
+                <div className="flex items-center space-x-1 text-red-400">
+                  <Heart className="w-3 h-3 fill-current" />
+                  <span className="text-xs">Favorite</span>
+                </div>
+              )}
+              {movie.isInWatchlist && (
+                <div className="flex items-center space-x-1 text-blue-400">
+                  <Clock className="w-3 h-3 fill-current" />
+                  <span className="text-xs">Watchlist</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </Link>

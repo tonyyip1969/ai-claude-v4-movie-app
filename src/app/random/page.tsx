@@ -56,6 +56,29 @@ export default function RandomPage() {
     }
   };
 
+  const handleWatchlistToggle = async (movieId: number) => {
+    setFavoriteChanging(true); // Reuse the same loading state
+    
+    try {
+      const response = await fetch(`/api/movies/${movieId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'toggleWatchlist' }),
+      });
+
+      if (response.ok) {
+        const { isInWatchlist } = await response.json();
+        setMovie(prev => prev ? { ...prev, isInWatchlist } : null);
+      }
+    } catch (error) {
+      console.error('Error toggling watchlist:', error);
+    } finally {
+      setFavoriteChanging(false);
+    }
+  };
+
   const handleNewRandom = () => {
     fetchRandomMovie();
   };
@@ -119,6 +142,7 @@ export default function RandomPage() {
               <MovieCard
                 movie={movie}
                 onFavoriteToggle={handleFavoriteToggle}
+                onWatchlistToggle={handleWatchlistToggle}
                 className={favoriteChanging ? 'opacity-70 pointer-events-none' : ''}
               />
             </div>

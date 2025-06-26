@@ -6,6 +6,7 @@ export interface Movie {
   videoUrl: string;
   coverUrl: string;
   isFavourite: boolean;
+  isInWatchlist: boolean;
   rating: number;
   createdAt: string;
   publishedAt: string;

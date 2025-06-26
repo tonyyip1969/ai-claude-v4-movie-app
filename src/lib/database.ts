@@ -9,6 +9,7 @@ export interface Movie {
   videoUrl: string;
   coverUrl: string;
   isFavourite: boolean;
+  isInWatchlist: boolean;
   rating: number;
   createdAt: string;
   publishedAt: string;
@@ -35,6 +36,7 @@ class MovieDatabase {
         videoUrl TEXT NOT NULL,
         coverUrl TEXT NOT NULL,
         isFavourite BOOLEAN DEFAULT FALSE,
+        isInWatchlist BOOLEAN DEFAULT FALSE,
         rating INTEGER CHECK(rating >= 1 AND rating <= 10),
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         publishedAt DATETIME
@@ -42,6 +44,13 @@ class MovieDatabase {
     `;
     
     this.db.exec(createMoviesTable);
+    
+    // Add isInWatchlist column if it doesn't exist (for existing databases)
+    try {
+      this.db.exec(`ALTER TABLE movies ADD COLUMN isInWatchlist BOOLEAN DEFAULT FALSE`);
+    } catch (error) {
+      // Column already exists or other error, ignore
+    }
   }
 
   private seedData() {
@@ -185,10 +194,11 @@ class MovieDatabase {
       LIMIT ? OFFSET ?
     `).all(limit, offset) as any[];
     
-    // Convert SQLite integers to booleans for isFavourite
+    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
     const convertedMovies = movies.map(movie => ({
       ...movie,
-      isFavourite: Boolean(movie.isFavourite)
+      isFavourite: Boolean(movie.isFavourite),
+      isInWatchlist: Boolean(movie.isInWatchlist)
     })) as Movie[];
     
     const totalResult = this.db.prepare('SELECT COUNT(*) as count FROM movies').get() as { count: number };
@@ -202,10 +212,23 @@ class MovieDatabase {
   getFavoriteMovies(): Movie[] {
     const movies = this.db.prepare('SELECT * FROM movies WHERE isFavourite = 1 ORDER BY title').all() as any[];
     
-    // Convert SQLite integers to booleans for isFavourite
+    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
     return movies.map(movie => ({
       ...movie,
-      isFavourite: Boolean(movie.isFavourite)
+      isFavourite: Boolean(movie.isFavourite),
+      isInWatchlist: Boolean(movie.isInWatchlist)
+    })) as Movie[];
+  }
+
+  // Get watchlist movies
+  getWatchlistMovies(): Movie[] {
+    const movies = this.db.prepare('SELECT * FROM movies WHERE isInWatchlist = 1 ORDER BY title').all() as any[];
+    
+    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
+    return movies.map(movie => ({
+      ...movie,
+      isFavourite: Boolean(movie.isFavourite),
+      isInWatchlist: Boolean(movie.isInWatchlist)
     })) as Movie[];
   }
 
@@ -215,10 +238,11 @@ class MovieDatabase {
     
     if (!result) return null;
     
-    // Convert SQLite integer to boolean for isFavourite
+    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
     return {
       ...result,
-      isFavourite: Boolean(result.isFavourite)
+      isFavourite: Boolean(result.isFavourite),
+      isInWatchlist: Boolean(result.isInWatchlist)
     } as Movie;
   }
 
@@ -228,10 +252,11 @@ class MovieDatabase {
     
     if (!result) return null;
     
-    // Convert SQLite integer to boolean for isFavourite
+    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
     return {
       ...result,
-      isFavourite: Boolean(result.isFavourite)
+      isFavourite: Boolean(result.isFavourite),
+      isInWatchlist: Boolean(result.isInWatchlist)
     } as Movie;
   }
 
@@ -243,10 +268,11 @@ class MovieDatabase {
       ORDER BY title
     `).all(`%${query}%`, `%${query}%`) as any[];
     
-    // Convert SQLite integers to booleans for isFavourite
+    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
     return movies.map(movie => ({
       ...movie,
-      isFavourite: Boolean(movie.isFavourite)
+      isFavourite: Boolean(movie.isFavourite),
+      isInWatchlist: Boolean(movie.isInWatchlist)
     })) as Movie[];
   }
 
@@ -264,6 +290,22 @@ class MovieDatabase {
     }
     
     return movie.isFavourite; // Return original status if update failed
+  }
+
+  // Toggle watchlist status
+  toggleWatchlist(id: number): boolean {
+    const movie = this.getMovieById(id);
+    if (!movie) return false;
+    
+    const newStatus = !movie.isInWatchlist;
+    const result = this.db.prepare('UPDATE movies SET isInWatchlist = ? WHERE id = ?').run(newStatus ? 1 : 0, id);
+    
+    // Verify the update was successful
+    if (result.changes > 0) {
+      return newStatus;
+    }
+    
+    return movie.isInWatchlist; // Return original status if update failed
   }
 
   // Update movie rating

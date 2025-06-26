@@ -91,6 +91,42 @@ export default function FavoritesPage() {
     }
   };
 
+  // Handle watchlist toggle
+  const handleWatchlistToggle = async (movieId: number) => {
+    setFavoriteChanging(movieId); // Reuse the same loading state
+    
+    try {
+      const response = await fetch(`/api/movies/${movieId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'toggleWatchlist' }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const { isInWatchlist } = data;
+        
+        // Update the movie watchlist status in current state
+        setMovies(prev => 
+          prev.map(movie => 
+            movie.id === movieId 
+              ? { ...movie, isInWatchlist } 
+              : movie
+          )
+        );
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to toggle watchlist:', errorData);
+      }
+    } catch (error) {
+      console.error('Error toggling watchlist:', error);
+    } finally {
+      setFavoriteChanging(null);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Header Section */}
@@ -139,6 +175,7 @@ export default function FavoritesPage() {
                 movie={movie}
                 onFavoriteToggle={handleFavoriteToggle}
                 onRatingUpdate={handleRatingUpdate}
+                onWatchlistToggle={handleWatchlistToggle}
                 className={favoriteChanging === movie.id ? 'opacity-70 pointer-events-none' : ''}
               />
             ))}

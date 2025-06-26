@@ -66,6 +66,22 @@ export async function PATCH(
       });
     }
 
+    if (body.action === 'toggleWatchlist') {
+      const movie = movieDB.getMovieById(id);
+      if (!movie) {
+        return NextResponse.json(
+          { error: 'Movie not found' },
+          { status: 404 }
+        );
+      }
+      
+      const newStatus = movieDB.toggleWatchlist(id);
+      return NextResponse.json({ 
+        isInWatchlist: newStatus,
+        message: `Movie ${newStatus ? 'added to' : 'removed from'} watchlist`
+      });
+    }
+
     if (body.action === 'updateRating') {
       const { rating } = body;
       
