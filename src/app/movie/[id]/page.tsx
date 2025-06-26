@@ -158,7 +158,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
       {/* Content */}
       <div className="relative z-10 min-h-screen">
         {/* Navigation Header */}
-        <div className="flex items-center justify-between p-6">
+        <div className="flex items-center justify-between px-4 py-6">
           <button
             onClick={() => router.back()}
             className="flex items-center space-x-2 text-white/80 hover:text-white transition-colors group bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg px-4 py-2 hover:bg-black/50"
@@ -169,9 +169,9 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
         </div>
 
         {/* Main Content */}
-        <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 px-6 pb-6">
+        <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 px-4 pb-6">
           {/* Left Side - Movie Poster and Rating */}
-          <div className="flex-1 space-y-6">
+          <div className="flex-[2] space-y-6">
             <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden bg-gray-800 shadow-2xl">
               {!imageError ? (
                 <Image
@@ -179,7 +179,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                   alt={movie.title}
                   fill
                   className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  sizes="(max-width: 1024px) 100vw, 66vw"
                 />
               ) : (
                 <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
