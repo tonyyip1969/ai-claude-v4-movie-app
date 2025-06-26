@@ -151,11 +151,6 @@ export default function Sidebar({ className }: SidebarProps) {
                       {count}
                     </span>
                   )}
-                  
-                  {/* Active indicator */}
-                  {isActive && (
-                    <div className="w-2 h-2 bg-primary-400 rounded-full animate-pulse" />
-                  )}
                 </div>
               )}
             </Link>
