@@ -315,24 +315,24 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
 
       {/* Video Player Modal */}
       {showVideo && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-6xl space-y-4">
+        <div className="fixed inset-0 bg-black z-50">
+          <VideoPlayer
+            src={movie.videoUrl}
+            poster={movie.coverUrl}
+            title={movie.title}
+            className="w-full h-full"
+          />
+          
+          {/* Overlay Header */}
+          <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">Now Playing: {movie.title}</h2>
+              <h2 className="text-xl font-bold text-white">Now Playing: {movie.title}</h2>
               <button
                 onClick={() => setShowVideo(false)}
-                className="text-gray-400 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-gray-800"
+                className="text-white/80 hover:text-white transition-colors p-2 rounded-lg hover:bg-black/30 backdrop-blur-sm"
               >
                 <X className="w-6 h-6" />
               </button>
-            </div>
-            
-            <div className="bg-black rounded-xl overflow-hidden">
-              <VideoPlayer
-                src={movie.videoUrl}
-                poster={movie.coverUrl}
-                title={movie.title}
-              />
             </div>
           </div>
         </div>
