@@ -20,7 +20,30 @@ interface SidebarProps {
 export default function Sidebar({ className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [counts, setCounts] = useState<{ favorites: number; watchlist: number }>({ favorites: 0, watchlist: 0 });
   const pathname = usePathname();
+
+  // Fetch movie counts
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const response = await fetch('/api/movies/counts');
+        if (response.ok) {
+          const data = await response.json();
+          setCounts(data);
+        }
+      } catch (error) {
+        console.error('Error fetching movie counts:', error);
+      }
+    };
+
+    fetchCounts();
+    
+    // Refetch counts when pathname changes (to update counts when navigating)
+    const interval = setInterval(fetchCounts, 5000); // Update every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, [pathname]);
 
   // Close mobile sidebar when route changes
   useEffect(() => {
@@ -81,6 +104,14 @@ export default function Sidebar({ className }: SidebarProps) {
           const isActive = pathname === item.href;
           const Icon = item.icon;
           
+          // Get count for this navigation item
+          let count = 0;
+          if (item.href === '/favorites') {
+            count = counts.favorites;
+          } else if (item.href === '/watchlist') {
+            count = counts.watchlist;
+          }
+          
           return (
             <Link
               key={item.name}
@@ -90,20 +121,42 @@ export default function Sidebar({ className }: SidebarProps) {
                 isActive 
                   ? "bg-gradient-to-r from-primary-500/20 to-accent-500/20 border border-primary-500/30 text-white" 
                   : "text-gray-400 hover:text-white hover:bg-gray-800/50",
-                isCollapsed && !isMobileOpen ? "justify-center" : "space-x-3"
+                isCollapsed && !isMobileOpen ? "justify-center" : "justify-between"
               )}
             >
-              <Icon className={cn(
-                "w-5 h-5 transition-colors duration-300",
-                isActive ? "text-primary-400" : "group-hover:text-primary-400"
-              )} />
-              {(!isCollapsed || isMobileOpen) && (
-                <span className="font-medium">{item.name}</span>
-              )}
+              <div className={cn(
+                "flex items-center",
+                isCollapsed && !isMobileOpen ? "justify-center" : "space-x-3"
+              )}>
+                <Icon className={cn(
+                  "w-5 h-5 transition-colors duration-300",
+                  isActive ? "text-primary-400" : "group-hover:text-primary-400"
+                )} />
+                {(!isCollapsed || isMobileOpen) && (
+                  <span className="font-medium">{item.name}</span>
+                )}
+              </div>
               
-              {/* Active indicator */}
-              {isActive && (
-                <div className="ml-auto w-2 h-2 bg-primary-400 rounded-full animate-pulse" />
+              {/* Count badge and active indicator */}
+              {(!isCollapsed || isMobileOpen) && (
+                <div className="flex items-center space-x-2">
+                  {/* Count badge */}
+                  {count > 0 && (
+                    <span className={cn(
+                      "px-2 py-1 text-xs font-semibold rounded-full transition-colors",
+                      isActive 
+                        ? "bg-primary-500/30 text-primary-300" 
+                        : "bg-gray-700 text-gray-300 group-hover:bg-gray-600"
+                    )}>
+                      {count}
+                    </span>
+                  )}
+                  
+                  {/* Active indicator */}
+                  {isActive && (
+                    <div className="w-2 h-2 bg-primary-400 rounded-full animate-pulse" />
+                  )}
+                </div>
               )}
             </Link>
           );
