@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Heart, Play, Star, Calendar, Code, Film } from 'lucide-react';
+import { ArrowLeft, Heart, Play, Star, Calendar, Code, Film, X } from 'lucide-react';
 import { Movie } from '@/types/movie';
 import VideoPlayer from '@/components/VideoPlayer';
 import RatingComponent from '@/components/RatingComponent';
@@ -137,95 +137,99 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Navigation Header */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors group bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-700/50"
-        >
-          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          <span>Back</span>
-        </button>
-        
-        {/* Quick Navigation */}
-        <div className="flex items-center space-x-2">
-          <Link
-            href="/"
-            className="text-gray-400 hover:text-white transition-colors bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-700/50"
-          >
-            Home
-          </Link>
-          <Link
-            href="/favorites"
-            className="text-gray-400 hover:text-white transition-colors bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-700/50"
-          >
-            Favorites
-          </Link>
-        </div>
+    <div className="min-h-screen">
+      {/* Background Image with Overlay */}
+      <div className="fixed inset-0 z-0">
+        {!imageError ? (
+          <Image
+            src={movie.coverUrl}
+            alt={movie.title}
+            fill
+            className="object-cover"
+            priority
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-900" />
+        )}
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       </div>
 
-      {/* Hero Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-        {/* Movie Poster */}
-        <div className="lg:col-span-1">
-          <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-gray-800 group">
-            {!imageError ? (
-              <Image
-                src={movie.coverUrl}
-                alt={movie.title}
-                fill
-                className="object-cover transition-transform duration-700 group-hover:scale-110"
-                sizes="(max-width: 1024px) 100vw, 33vw"
-                onError={() => setImageError(true)}
-                priority
-              />
-            ) : (
-              <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
-                <div className="text-gray-500 text-center">
-                  <Film className="w-16 h-16 mx-auto mb-4" />
-                  <p>Image not available</p>
-                </div>
-              </div>
-            )}
-            
-            {/* Overlay with rating */}
-            <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/20">
-              <span className="text-white font-bold text-lg">{movie.rating}/10</span>
-            </div>
-            
-            {/* Favorite badge */}
-            {movie.isFavourite && (
-              <div className="absolute top-4 right-4 bg-red-500/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-red-400/50">
-                <Heart className="w-4 h-4 fill-white text-white" />
-              </div>
-            )}
-          </div>
+      {/* Content */}
+      <div className="relative z-10 min-h-screen">
+        {/* Navigation Header */}
+        <div className="flex items-center justify-between p-6">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center space-x-2 text-white/80 hover:text-white transition-colors group bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg px-4 py-2 hover:bg-black/50"
+          >
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+            <span>Back</span>
+          </button>
         </div>
 
-        {/* Movie Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Title and Meta */}
-          <div className="space-y-4">
-            <div>
-              <h1 className="text-4xl lg:text-5xl font-bold text-white mb-2 leading-tight">
-                {movie.title}
-              </h1>
-              <div className="flex items-center space-x-4 text-gray-400">
-                <div className="flex items-center space-x-1">
-                  <Code className="w-4 h-4" />
-                  <span className="font-mono text-sm">{movie.code}</span>
+        {/* Main Content */}
+        <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 px-6 pb-6">
+          {/* Left Side - Movie Poster and Rating */}
+          <div className="flex-1 space-y-6">
+            <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden bg-gray-800 shadow-2xl">
+              {!imageError ? (
+                <Image
+                  src={movie.coverUrl}
+                  alt={movie.title}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
+                  <div className="text-gray-500 text-center">
+                    <Film className="w-16 h-16 mx-auto mb-4" />
+                    <p>Image not available</p>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <Calendar className="w-4 h-4" />
-                  <span className="text-sm">{formatDate(movie.publishedAt)}</span>
-                </div>
-              </div>
+              )}
             </div>
 
-            {/* Rating */}
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={() => setShowVideo(true)}
+                className="flex items-center justify-center space-x-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold px-8 py-4 rounded-lg transition-colors"
+              >
+                <Play className="w-5 h-5 fill-white" />
+                <span>Play Movie</span>
+              </button>
+
+              <button
+                onClick={handleFavoriteToggle}
+                disabled={favoriteChanging}
+                className={cn(
+                  "flex items-center justify-center space-x-2 border-2 font-semibold px-8 py-4 rounded-lg transition-all",
+                  movie.isFavourite
+                    ? "bg-red-600/20 border-red-500 text-red-400 hover:bg-red-600/30"
+                    : "border-white/30 text-white hover:bg-white/10",
+                  favoriteChanging && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <Heart className={cn(
+                  "w-5 h-5 transition-colors",
+                  movie.isFavourite ? "fill-red-400 text-red-400" : ""
+                )} />
+                <span>
+                  {favoriteChanging 
+                    ? 'Updating...' 
+                    : movie.isFavourite 
+                      ? 'Remove from Favorites' 
+                      : 'Add to Favorites'
+                  }
+                </span>
+              </button>
+            </div>
+
+            {/* Interactive Rating */}
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-gray-300">Rating</h3>
+              <h3 className="text-xl font-semibold text-white">Rate This Movie</h3>
               <div className="flex flex-col space-y-2">
                 <RatingComponent
                   rating={movie.rating}
@@ -235,126 +239,104 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                   className={ratingChanging ? "opacity-50" : ""}
                 />
                 {ratingChanging && (
-                  <p className="text-sm text-gray-500">Updating rating...</p>
+                  <p className="text-sm text-gray-400">Updating rating...</p>
                 )}
-                <p className="text-xs text-gray-500">Click the stars to rate this movie</p>
+                <p className="text-xs text-gray-400">Click the stars to rate this movie</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side - Movie Information */}
+          <div className="flex-1 space-y-6">
+            {/* Title and Meta */}
+            <div className="space-y-4">
+              <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight">
+                {movie.title}
+              </h1>
+              
+              {/* Rating and Year */}
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-1">
+                  <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                  <span className="text-white font-semibold">{movie.rating}/10</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Calendar className="w-4 h-4 text-gray-300" />
+                  <span className="text-gray-300">{new Date(movie.publishedAt).getFullYear()}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Code className="w-4 h-4 text-gray-300" />
+                  <span className="text-gray-300 font-mono">{movie.code}</span>
+                </div>
               </div>
             </div>
 
             {/* Description */}
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-gray-300">Synopsis</h3>
-              <p className="text-gray-400 leading-relaxed text-lg">
+            <div className="space-y-3">
+              <h3 className="text-xl font-semibold text-white">Description</h3>
+              <p className="text-gray-300 leading-relaxed text-lg">
                 {movie.description}
               </p>
             </div>
-          </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-            {/* Play Button */}
-            <button
-              onClick={() => setShowVideo(true)}
-              className="btn-primary flex items-center space-x-3 text-lg px-8 py-4 w-full sm:w-auto justify-center"
-            >
-              <Play className="w-6 h-6 fill-white" />
-              <span>Watch Now</span>
-            </button>
-
-            {/* Favorite Button */}
-            <button
-              onClick={handleFavoriteToggle}
-              disabled={favoriteChanging}
-              className={cn(
-                "flex items-center space-x-2 px-6 py-4 rounded-lg border transition-all duration-300 w-full sm:w-auto justify-center",
-                movie.isFavourite
-                  ? "bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30"
-                  : "bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700 hover:border-gray-500",
-                favoriteChanging && "opacity-50 cursor-not-allowed"
-              )}
-            >
-              <Heart className={cn(
-                "w-5 h-5 transition-colors",
-                movie.isFavourite ? "fill-red-400 text-red-400" : ""
-              )} />
-              <span>
-                {favoriteChanging 
-                  ? 'Updating...' 
-                  : movie.isFavourite 
-                    ? 'Remove from Favorites' 
-                    : 'Add to Favorites'
-                }
-              </span>
-            </button>
-          </div>
-
-          {/* Movie Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-gray-700">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary-400">{movie.rating}/10</div>
-              <div className="text-sm text-gray-500">User Rating</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-accent-400">{new Date(movie.publishedAt).getFullYear()}</div>
-              <div className="text-sm text-gray-500">Release Year</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-400">{movie.isFavourite ? 'Yes' : 'No'}</div>
-              <div className="text-sm text-gray-500">Favorite</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-400">{movie.code}</div>
-              <div className="text-sm text-gray-500">Movie Code</div>
+            {/* Movie Details Grid */}
+            <div className="space-y-3">
+              <h3 className="text-xl font-semibold text-white">Movie Details</h3>
+              <div className="grid grid-cols-2 gap-y-3 gap-x-8 text-sm">
+                <div>
+                  <span className="text-gray-400">Movie ID:</span>
+                  <span className="text-white ml-2">#{movie.id}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Code:</span>
+                  <span className="text-white ml-2 font-mono">{movie.code}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Rating:</span>
+                  <span className="text-white ml-2">{movie.rating}/10</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Published:</span>
+                  <span className="text-white ml-2">{formatDate(movie.publishedAt)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Added:</span>
+                  <span className="text-white ml-2">{formatDate(movie.createdAt)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Favorite:</span>
+                  <span className="text-white ml-2">{movie.isFavourite ? 'Yes' : 'No'}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Video Player Section */}
+      {/* Video Player Modal */}
       {showVideo && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-white">Now Playing</h2>
-            <button
-              onClick={() => setShowVideo(false)}
-              className="text-gray-400 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-gray-800"
-            >
-              Hide Player
-            </button>
-          </div>
-          
-          <div className="bg-black rounded-xl overflow-hidden">
-            <VideoPlayer
-              src={movie.videoUrl}
-              poster={movie.coverUrl}
-              title={movie.title}
-            />
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-6xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-white">Now Playing: {movie.title}</h2>
+              <button
+                onClick={() => setShowVideo(false)}
+                className="text-gray-400 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-gray-800"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="bg-black rounded-xl overflow-hidden">
+              <VideoPlayer
+                src={movie.videoUrl}
+                poster={movie.coverUrl}
+                title={movie.title}
+              />
+            </div>
           </div>
         </div>
       )}
-
-      {/* Additional Info */}
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-xl p-6 space-y-4">
-        <h3 className="text-xl font-semibold text-white">Movie Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-400">Movie ID:</span>
-            <span className="text-white ml-2">#{movie.id}</span>
-          </div>
-          <div>
-            <span className="text-gray-400">Movie Code:</span>
-            <span className="text-white ml-2 font-mono">{movie.code}</span>
-          </div>
-          <div>
-            <span className="text-gray-400">Added:</span>
-            <span className="text-white ml-2">{formatDate(movie.createdAt)}</span>
-          </div>
-          <div>
-            <span className="text-gray-400">Published:</span>
-            <span className="text-white ml-2">{formatDate(movie.publishedAt)}</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
