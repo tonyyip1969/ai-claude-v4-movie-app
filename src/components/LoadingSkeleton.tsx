@@ -73,35 +73,82 @@ export function SearchSkeleton({ className }: { className?: string }) {
 
 export function MovieDetailSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("space-y-8", className)}>
-      {/* Hero section skeleton */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Poster */}
-        <div className="lg:col-span-1">
-          <div className="aspect-[16/9] bg-gray-700 rounded-xl skeleton" />
+    <div className={cn("min-h-screen", className)}>
+      {/* Background skeleton */}
+      <div className="fixed inset-0 z-0 bg-gray-900" />
+      
+      {/* Content */}
+      <div className="relative z-10 min-h-screen">
+        {/* Navigation Header */}
+        <div className="flex items-center justify-between px-4 py-6">
+          <div className="h-10 w-20 bg-gray-700 rounded-lg skeleton" />
         </div>
-        
-        {/* Details */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="space-y-4">
-            <div className="h-8 bg-gray-700 rounded skeleton" />
-            <div className="h-4 w-24 bg-gray-700 rounded skeleton" />
-            <div className="space-y-2">
-              <div className="h-4 bg-gray-700 rounded skeleton" />
-              <div className="h-4 bg-gray-700 rounded skeleton" />
-              <div className="h-4 bg-gray-700 rounded w-3/4 skeleton" />
+
+        {/* Main Content */}
+        <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 px-4 pb-6">
+          {/* Left Side - Movie Poster and Actions */}
+          <div className="flex-[2] space-y-6">
+            {/* Poster skeleton */}
+            <div className="relative w-full aspect-[16/9] rounded-xl bg-gray-700 skeleton" />
+
+            {/* Action Buttons skeleton */}
+            <div className="flex flex-col gap-4">
+              <div className="h-12 bg-gray-700 rounded-lg skeleton" />
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="h-12 flex-1 bg-gray-700 rounded-lg skeleton" />
+                <div className="h-12 flex-1 bg-gray-700 rounded-lg skeleton" />
+              </div>
+            </div>
+
+            {/* Rating section skeleton */}
+            <div className="space-y-3">
+              <div className="h-6 w-40 bg-gray-700 rounded skeleton" />
+              <div className="space-y-2">
+                <div className="h-8 w-48 bg-gray-700 rounded skeleton" />
+                <div className="h-4 w-32 bg-gray-700 rounded skeleton" />
+                <div className="h-3 w-56 bg-gray-700 rounded skeleton" />
+              </div>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="h-12 w-32 bg-gray-700 rounded-lg skeleton" />
-            <div className="h-12 w-12 bg-gray-700 rounded-lg skeleton" />
+
+          {/* Right Side - Movie Information */}
+          <div className="flex-1 space-y-6">
+            {/* Title and Meta skeleton */}
+            <div className="space-y-4">
+              <div className="h-12 bg-gray-700 rounded skeleton" />
+              <div className="h-8 w-3/4 bg-gray-700 rounded skeleton" />
+              
+              {/* Rating and Year skeleton */}
+              <div className="flex items-center space-x-4">
+                <div className="h-6 w-16 bg-gray-700 rounded skeleton" />
+                <div className="h-6 w-12 bg-gray-700 rounded skeleton" />
+                <div className="h-6 w-20 bg-gray-700 rounded skeleton" />
+              </div>
+            </div>
+
+            {/* Description skeleton */}
+            <div className="space-y-3">
+              <div className="h-6 w-32 bg-gray-700 rounded skeleton" />
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-700 rounded skeleton" />
+                <div className="h-4 bg-gray-700 rounded skeleton" />
+                <div className="h-4 bg-gray-700 rounded skeleton" />
+                <div className="h-4 w-3/4 bg-gray-700 rounded skeleton" />
+              </div>
+            </div>
+
+            {/* Movie Details Grid skeleton */}
+            <div className="space-y-3">
+              <div className="h-6 w-36 bg-gray-700 rounded skeleton" />
+              <div className="grid grid-cols-2 gap-y-3 gap-x-8">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="h-4 bg-gray-700 rounded skeleton" />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      
-      {/* Video player skeleton */}
-      <div className="aspect-video bg-gray-700 rounded-xl skeleton" />
     </div>
   );
 }
