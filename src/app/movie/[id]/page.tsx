@@ -26,6 +26,18 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
   const [imageError, setImageError] = useState(false);
   const router = useRouter();
 
+  // Handle ESC key to close video player
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showVideo) {
+        setShowVideo(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [showVideo]);
+
   useEffect(() => {
     const fetchMovie = async () => {
       setLoading(true);
@@ -214,13 +226,33 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                   </div>
                 </div>
               )}
+
+              {/* Video Player Overlay */}
+              {showVideo && (
+                <div className="absolute inset-0 z-10">
+                  <VideoPlayer
+                    src={movie.videoUrl}
+                    poster={movie.coverUrl}
+                    title={movie.title}
+                    className="w-full h-full"
+                  />
+                  
+                  {/* Close Button */}
+                  <button
+                    onClick={() => setShowVideo(false)}
+                    className="absolute top-4 right-4 z-20 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
             <div className="flex flex-col gap-4">
               <button
                 onClick={() => setShowVideo(true)}
-                className="flex items-center justify-center space-x-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold px-8 py-4 rounded-lg transition-colors"
+                className="flex items-center justify-center space-x-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold px-8 py-4 rounded-lg transition-colors"
               >
                 <Play className="w-5 h-5 fill-white" />
                 <span>Play Movie</span>
@@ -368,31 +400,6 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
           </div>
         </div>
       </div>
-
-      {/* Video Player Modal */}
-      {showVideo && (
-        <div className="fixed inset-0 bg-black z-50">
-          <VideoPlayer
-            src={movie.videoUrl}
-            poster={movie.coverUrl}
-            title={movie.title}
-            className="w-full h-full"
-          />
-          
-          {/* Overlay Header */}
-          <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Now Playing: {movie.title}</h2>
-              <button
-                onClick={() => setShowVideo(false)}
-                className="text-white/80 hover:text-white transition-colors p-2 rounded-lg hover:bg-black/30 backdrop-blur-sm"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
