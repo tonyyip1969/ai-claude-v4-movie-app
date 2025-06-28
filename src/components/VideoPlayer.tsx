@@ -4,6 +4,15 @@ import { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Dynamically import HLS.js to avoid SSR issues
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Hls: any = null;
+if (typeof window !== 'undefined') {
+  import('hls.js').then((hlsModule) => {
+    Hls = hlsModule.default;
+  });
+}
+
 interface VideoPlayerProps {
   src: string;
   poster?: string;
@@ -14,6 +23,8 @@ interface VideoPlayerProps {
 
 export default function VideoPlayer({ src, poster, title, className, onEscape }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const hlsRef = useRef<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -24,6 +35,9 @@ export default function VideoPlayer({ src, poster, title, className, onEscape }:
   const [error, setError] = useState<string | null>(null);
   const [playbackRate, setPlaybackRate] = useState(1);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Check if video source is HLS (m3u8)
+  const isHLS = src.toLowerCase().includes('.m3u8');
 
   useEffect(() => {
     const video = videoRef.current;
@@ -85,6 +99,81 @@ export default function VideoPlayer({ src, poster, title, className, onEscape }:
       video.removeEventListener('loadstart', handleLoadStart);
     };
   }, []);
+
+  // HLS.js initialization for m3u8 streams
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    // Cleanup previous HLS instance
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    if (isHLS) {
+      // Use HLS.js for m3u8 streams
+      if (Hls && Hls.isSupported()) {
+        const hls = new Hls({
+          enableWorker: false,
+          lowLatencyMode: true,
+          backBufferLength: 90
+        });
+
+        hlsRef.current = hls;
+
+        hls.loadSource(src);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          setIsLoading(false);
+          console.log('HLS manifest loaded successfully');
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        hls.on(Hls.Events.ERROR, (event: any, data: any) => {
+          console.error('HLS error:', data);
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                setError('Network error loading video stream');
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                setError('Media error in video stream');
+                hls.recoverMediaError();
+                break;
+              default:
+                setError('Fatal error loading video stream');
+                hls.destroy();
+                break;
+            }
+          }
+        });
+
+        return () => {
+          hls.destroy();
+        };
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Native HLS support (Safari)
+        video.src = src;
+        setIsLoading(false);
+      } else {
+        setError('HLS not supported in this browser');
+        setIsLoading(false);
+      }
+    } else {
+      // Regular video file (MP4, etc.)
+      video.src = src;
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [src, isHLS]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -375,7 +464,7 @@ export default function VideoPlayer({ src, poster, title, className, onEscape }:
         preload="metadata"
         onClick={togglePlay}
       >
-        <source src={src} type="video/mp4" />
+        {!isHLS && <source src={src} type="video/mp4" />}
         Your browser does not support the video tag.
       </video>
 
