@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Heart, Play, Star, Calendar, Code, Film, X, Clock } from 'lucide-react';
+import { ArrowLeft, Heart, Play, Star, Calendar, Code, Film, Clock } from 'lucide-react';
 import { Movie } from '@/types/movie';
-import VideoPlayer from '@/components/VideoPlayer';
+import VideoModal from '@/components/VideoModal';
 import RatingComponent from '@/components/RatingComponent';
 import { MovieDetailSkeleton } from '@/components/LoadingSkeleton';
-import { cn, formatDate, truncateText } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 
 interface MovieDetailPageProps {
   params: { id: string };
@@ -205,6 +205,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                   fill
                   className="object-cover"
                   sizes="(max-width: 1024px) 100vw, 66vw"
+                  onError={() => setImageError(true)}
                 />
               ) : (
                 <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
@@ -369,30 +370,14 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
         </div>
       </div>
 
-      {/* Video Player Modal */}
-      {showVideo && (
-        <div className="fixed inset-0 bg-black z-50">
-          <VideoPlayer
-            src={movie.videoUrl}
-            poster={movie.coverUrl}
-            title={movie.title}
-            className="w-full h-full"
-          />
-          
-          {/* Overlay Header */}
-          <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Now Playing: {movie.title}</h2>
-              <button
-                onClick={() => setShowVideo(false)}
-                className="text-white/80 hover:text-white transition-colors p-2 rounded-lg hover:bg-black/30 backdrop-blur-sm"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Video Modal */}
+      <VideoModal
+        isOpen={showVideo}
+        onClose={() => setShowVideo(false)}
+        src={movie.videoUrl}
+        poster={movie.coverUrl}
+        title={movie.title}
+      />
     </div>
   );
 }

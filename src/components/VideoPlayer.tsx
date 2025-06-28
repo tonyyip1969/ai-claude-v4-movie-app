@@ -9,9 +9,10 @@ interface VideoPlayerProps {
   poster?: string;
   title?: string;
   className?: string;
+  onEscape?: () => void;
 }
 
-export default function VideoPlayer({ src, poster, title, className }: VideoPlayerProps) {
+export default function VideoPlayer({ src, poster, title, className, onEscape }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -21,6 +22,7 @@ export default function VideoPlayer({ src, poster, title, className }: VideoPlay
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [playbackRate, setPlaybackRate] = useState(1);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
@@ -49,6 +51,10 @@ export default function VideoPlayer({ src, poster, title, className }: VideoPlay
       setIsMuted(video.muted);
     };
 
+    const handleRateChange = () => {
+      setPlaybackRate(video.playbackRate);
+    };
+
     const handleError = () => {
       setError('Failed to load video');
       setIsLoading(false);
@@ -64,6 +70,7 @@ export default function VideoPlayer({ src, poster, title, className }: VideoPlay
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
     video.addEventListener('volumechange', handleVolumeChange);
+    video.addEventListener('ratechange', handleRateChange);
     video.addEventListener('error', handleError);
     video.addEventListener('loadstart', handleLoadStart);
 
@@ -73,10 +80,195 @@ export default function VideoPlayer({ src, poster, title, className }: VideoPlay
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('volumechange', handleVolumeChange);
+      video.removeEventListener('ratechange', handleRateChange);
       video.removeEventListener('error', handleError);
       video.removeEventListener('loadstart', handleLoadStart);
     };
   }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle keyboard shortcuts when the video player is focused or when it's in a modal
+      const videoContainer = video.closest('[data-video-player]');
+      const isInModal = !!document.querySelector('[data-video-player]');
+      const activeElement = document.activeElement;
+      
+      // Check if we should handle the keyboard event
+      const shouldHandle = isInModal || 
+                          videoContainer?.contains(activeElement) || 
+                          activeElement === videoContainer;
+      
+      if (!shouldHandle) return;
+
+      // Handle ESC key differently based on context
+      if (e.code === 'Escape') {
+        // If we have an onEscape prop (meaning we're in a modal), call it
+        // Otherwise, do nothing to let other handlers deal with it
+        if (onEscape) {
+          e.preventDefault();
+          onEscape();
+        }
+        return;
+      }
+
+      // Prevent default browser behavior for these keys (but not Escape, handled above)
+      if (['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyK', 'KeyJ', 'KeyL', 'KeyM', 'KeyF', 'KeyR', 'Home', 'End', 'Equal', 'Minus'].includes(e.code) || 
+          e.code.match(/^Digit[0-9]$/)) {
+        e.preventDefault();
+      }
+
+      switch (e.code) {        
+        case 'Space':
+        case 'KeyK': // K is common for play/pause in many video players
+          togglePlay();
+          break;
+        
+        case 'KeyJ': // J for backward 10 seconds (YouTube standard)
+        case 'ArrowLeft':
+          if (e.ctrlKey) {
+            // Ctrl + Left Arrow: Backward 1 minute
+            const newTimeBackwardMin = Math.max(0, video.currentTime - 60);
+            video.currentTime = newTimeBackwardMin;
+            showSeekFeedback(`-1min`);
+          } else {
+            // Backward 10 seconds
+            const newTimeBackward = Math.max(0, video.currentTime - 10);
+            video.currentTime = newTimeBackward;
+            showSeekFeedback(`-10s`);
+          }
+          break;
+        
+        case 'KeyL': // L for forward 10 seconds (YouTube standard)
+        case 'ArrowRight':
+          if (e.ctrlKey) {
+            // Ctrl + Right Arrow: Forward 1 minute
+            const newTimeForwardMin = Math.min(video.duration || 0, video.currentTime + 60);
+            video.currentTime = newTimeForwardMin;
+            showSeekFeedback(`+1min`);
+          } else {
+            // Forward 10 seconds
+            const newTimeForward = Math.min(video.duration || 0, video.currentTime + 10);
+            video.currentTime = newTimeForward;
+            showSeekFeedback(`+10s`);
+          }
+          break;
+        
+        case 'ArrowUp':
+          // Volume up
+          e.preventDefault();
+          const newVolumeUp = Math.min(1, video.volume + 0.1);
+          video.volume = newVolumeUp;
+          showSeekFeedback(`Volume ${Math.round(newVolumeUp * 100)}%`);
+          break;
+        
+        case 'ArrowDown':
+          // Volume down
+          e.preventDefault();
+          const newVolumeDown = Math.max(0, video.volume - 0.1);
+          video.volume = newVolumeDown;
+          showSeekFeedback(`Volume ${Math.round(newVolumeDown * 100)}%`);
+          break;
+        
+        case 'KeyM': // M for mute/unmute
+          toggleMute();
+          showSeekFeedback(isMuted ? 'Unmuted' : 'Muted');
+          break;
+        
+        case 'KeyF': // F for fullscreen
+          toggleFullscreen();
+          break;
+        
+        case 'KeyR': // R for reset playback speed
+          resetPlaybackSpeed();
+          break;
+        
+        case 'Digit0':
+        case 'Numpad0':
+          // Go to beginning
+          video.currentTime = 0;
+          showSeekFeedback('Start');
+          break;
+        
+        case 'Digit1':
+        case 'Digit2':
+        case 'Digit3':
+        case 'Digit4':
+        case 'Digit5':
+        case 'Digit6':
+        case 'Digit7':
+        case 'Digit8':
+        case 'Digit9':
+          if (e.shiftKey) {
+            // Speed presets with Shift + number
+            const speedPresets: { [key: string]: number } = {
+              'Digit1': 0.5,   // Shift + 1: 0.5x
+              'Digit2': 0.75,  // Shift + 2: 0.75x
+              'Digit3': 1.25,  // Shift + 3: 1.25x
+              'Digit4': 1.5,   // Shift + 4: 1.5x
+              'Digit5': 2,     // Shift + 5: 2x
+            };
+            
+            if (speedPresets[e.code]) {
+              video.playbackRate = speedPresets[e.code];
+              showSeekFeedback(`⚡ Speed ${speedPresets[e.code]}x`);
+            }
+          } else {
+            // Jump to percentage of video (1 = 10%, 2 = 20%, etc.)
+            const percentage = parseInt(e.code.replace('Digit', '')) / 10;
+            video.currentTime = video.duration * percentage;
+            showSeekFeedback(`${percentage * 100}%`);
+          }
+          break;
+        
+        case 'Home':
+          // Jump to beginning
+          video.currentTime = 0;
+          showSeekFeedback('Start');
+          break;
+        
+        case 'End':
+          // Jump to end
+          video.currentTime = video.duration - 1;
+          showSeekFeedback('End');
+          break;
+        
+        case 'Equal': // + key (usually Shift + =, but we'll handle = for simplicity)
+        case 'NumpadAdd':
+          // Increase playback speed
+          const newSpeedUp = Math.min(2, video.playbackRate + 0.25);
+          video.playbackRate = newSpeedUp;
+          showSeekFeedback(`🔺 Speed ${newSpeedUp}x`);
+          break;
+        
+        case 'Minus':
+        case 'NumpadSubtract':
+          // Decrease playback speed
+          const newSpeedDown = Math.max(0.25, video.playbackRate - 0.25);
+          video.playbackRate = newSpeedDown;
+          showSeekFeedback(`🔻 Speed ${newSpeedDown}x`);
+          break;
+      }
+    };
+
+    // Add event listener to document for global keyboard shortcuts
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isPlaying, isMuted, playbackRate, onEscape]);
+
+  // Show seek feedback
+  const [seekFeedback, setSeekFeedback] = useState<string | null>(null);
+  
+  const showSeekFeedback = (text: string) => {
+    setSeekFeedback(text);
+    setTimeout(() => setSeekFeedback(null), 1000);
+  };
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -132,6 +324,14 @@ export default function VideoPlayer({ src, poster, title, className }: VideoPlay
     video.play();
   };
 
+  const resetPlaybackSpeed = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.playbackRate = 1;
+    showSeekFeedback('🔄 Speed 1x');
+  };
+
   const handleMouseMove = () => {
     setShowControls(true);
     if (controlsTimeoutRef.current) {
@@ -162,6 +362,10 @@ export default function VideoPlayer({ src, poster, title, className }: VideoPlay
       )}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
+      data-video-player
+      tabIndex={0}
+      onFocus={() => setShowControls(true)}
+      style={{ outline: 'none' }}
     >
       {/* Video Element */}
       <video
@@ -208,6 +412,15 @@ export default function VideoPlayer({ src, poster, title, className }: VideoPlay
           >
             <Play className="w-12 h-12 text-white fill-white" />
           </button>
+        </div>
+      )}
+
+      {/* Seek Feedback Overlay */}
+      {seekFeedback && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="bg-black/70 text-white px-4 py-2 rounded-lg backdrop-blur-sm text-lg font-medium">
+            {seekFeedback}
+          </div>
         </div>
       )}
 
@@ -283,6 +496,13 @@ export default function VideoPlayer({ src, poster, title, className }: VideoPlay
             {title && (
               <span className="text-white text-sm font-medium ml-4 truncate max-w-xs">
                 {title}
+              </span>
+            )}
+
+            {/* Playback Speed Indicator */}
+            {playbackRate !== 1 && (
+              <span className="text-primary-400 text-sm font-medium ml-4 bg-primary-500/20 px-2 py-1 rounded">
+                {playbackRate}x
               </span>
             )}
           </div>
