@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { useSettings } from '@/hooks/useSettings';
 
 interface LoadingSkeletonProps {
   className?: string;
@@ -43,13 +44,18 @@ export function MovieCardSkeleton({ className }: { className?: string }) {
   );
 }
 
-export function MovieGridSkeleton({ count = 20, className }: LoadingSkeletonProps) {
+export function MovieGridSkeleton({ count, className }: LoadingSkeletonProps) {
+  const { settings } = useSettings();
+  const itemCount = count || (settings.gridColumns * settings.gridRows);
+  
   return (
-    <div className={cn(
-      "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6",
-      className
-    )}>
-      {Array.from({ length: count }).map((_, index) => (
+    <div 
+      className={cn("grid gap-6", className)}
+      style={{
+        gridTemplateColumns: `repeat(${settings.gridColumns}, 1fr)`
+      }}
+    >
+      {Array.from({ length: itemCount }).map((_, index) => (
         <MovieCardSkeleton key={index} />
       ))}
     </div>
@@ -57,6 +63,8 @@ export function MovieGridSkeleton({ count = 20, className }: LoadingSkeletonProp
 }
 
 export function SearchSkeleton({ className }: { className?: string }) {
+  const { settings } = useSettings();
+  
   return (
     <div className={cn("space-y-6", className)}>
       {/* Search header skeleton */}
@@ -66,7 +74,7 @@ export function SearchSkeleton({ className }: { className?: string }) {
       </div>
       
       {/* Results grid skeleton */}
-      <MovieGridSkeleton count={12} />
+      <MovieGridSkeleton count={settings.gridColumns * 3} />
     </div>
   );
 }

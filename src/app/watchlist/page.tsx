@@ -5,8 +5,10 @@ import { Movie } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
 import { MovieCardSkeleton } from '@/components/LoadingSkeleton';
 import { Clock, Bookmark, Play } from 'lucide-react';
+import { useSettings } from '@/hooks/useSettings';
 
 export default function WatchlistPage() {
+  const { settings } = useSettings();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [watchlistChanging, setWatchlistChanging] = useState<Record<number, boolean>>({});
@@ -119,8 +121,13 @@ export default function WatchlistPage() {
 
         {/* Loading State */}
         {loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {Array.from({ length: 10 }).map((_, index) => (
+          <div 
+            className="grid gap-6"
+            style={{
+              gridTemplateColumns: `repeat(${settings.gridColumns}, 1fr)`
+            }}
+          >
+            {Array.from({ length: settings.gridColumns * settings.gridRows }).map((_, index) => (
               <MovieCardSkeleton key={index} />
             ))}
           </div>
@@ -128,7 +135,12 @@ export default function WatchlistPage() {
 
         {/* Movies Grid */}
         {!loading && movies.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          <div 
+            className="grid gap-6"
+            style={{
+              gridTemplateColumns: `repeat(${settings.gridColumns}, 1fr)`
+            }}
+          >
             {movies.map((movie) => (
               <MovieCard
                 key={movie.id}

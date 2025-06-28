@@ -6,8 +6,10 @@ import MovieCard from '@/components/MovieCard';
 import { MovieGridSkeleton } from '@/components/LoadingSkeleton';
 import { Heart, HeartOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSettings } from '@/hooks/useSettings';
 
 export default function FavoritesPage() {
+  const { settings } = useSettings();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [favoriteChanging, setFavoriteChanging] = useState<number | null>(null);
@@ -168,7 +170,12 @@ export default function FavoritesPage() {
 
         {/* Movies Grid */}
         {!loading && movies.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          <div 
+            className="grid gap-6"
+            style={{
+              gridTemplateColumns: `repeat(${settings.gridColumns}, 1fr)`
+            }}
+          >
             {movies.map((movie) => (
               <MovieCard
                 key={movie.id}

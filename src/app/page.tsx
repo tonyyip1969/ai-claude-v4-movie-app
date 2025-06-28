@@ -8,8 +8,10 @@ import Pagination from '@/components/Pagination';
 import { MovieGridSkeleton, SearchSkeleton } from '@/components/LoadingSkeleton';
 import { Film, Search as SearchIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSettings } from '@/hooks/useSettings';
 
 export default function HomePage() {
+  const { settings, moviesPerPage, isLoaded } = useSettings();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [searchResults, setSearchResults] = useState<Movie[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -21,9 +23,11 @@ export default function HomePage() {
 
   // Fetch movies for current page
   const fetchMovies = async (page: number) => {
+    if (!isLoaded) return; // Wait for settings to load
+    
     setLoading(true);
     try {
-      const response = await fetch(`/api/movies?page=${page}&limit=20`);
+      const response = await fetch(`/api/movies?page=${page}&limit=${moviesPerPage}`);
       const data: PaginatedMovies = await response.json();
       
       if (response.ok) {
@@ -40,10 +44,19 @@ export default function HomePage() {
     }
   };
 
-  // Load initial movies
+  // Load initial movies when settings are loaded
   useEffect(() => {
-    fetchMovies(1);
-  }, []);
+    if (isLoaded) {
+      fetchMovies(1);
+    }
+  }, [isLoaded, moviesPerPage]);
+
+  // Refetch when settings change
+  useEffect(() => {
+    if (isLoaded && !searchMode) {
+      fetchMovies(currentPage);
+    }
+  }, [moviesPerPage]);
 
   // Handle page change
   const handlePageChange = (page: number) => {
@@ -273,7 +286,12 @@ export default function HomePage() {
 
         {/* Movies Grid */}
         {!loading && displayMovies.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          <div 
+            className="grid gap-6"
+            style={{
+              gridTemplateColumns: `repeat(${settings.gridColumns}, 1fr)`
+            }}
+          >
             {displayMovies.map((movie) => (
               <MovieCard
                 key={movie.id}

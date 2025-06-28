@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Heart, Shuffle, Menu, X, Film, Clock } from 'lucide-react';
+import { Home, Heart, Shuffle, Menu, X, Film, Clock, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
@@ -11,6 +11,10 @@ const navigation = [
   { name: 'Favourites', href: '/favorites', icon: Heart },
   { name: 'Watch List', href: '/watchlist', icon: Clock },
   { name: 'Random', href: '/random', icon: Shuffle },
+];
+
+const bottomNavigation = [
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 interface SidebarProps {
@@ -157,6 +161,41 @@ export default function Sidebar({ className }: SidebarProps) {
           );
         })}
       </nav>
+
+      {/* Bottom Navigation */}
+      <div className="px-4 pb-4">
+        {bottomNavigation.map((item) => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
+          
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={cn(
+                "flex items-center px-4 py-3 rounded-lg transition-all duration-300 group",
+                isActive 
+                  ? "bg-gradient-to-r from-primary-500/20 to-accent-500/20 border border-primary-500/30 text-white" 
+                  : "text-gray-400 hover:text-white hover:bg-gray-800/50",
+                isCollapsed && !isMobileOpen ? "justify-center" : "justify-start"
+              )}
+            >
+              <div className={cn(
+                "flex items-center",
+                isCollapsed && !isMobileOpen ? "justify-center" : "space-x-3"
+              )}>
+                <Icon className={cn(
+                  "w-5 h-5 transition-colors duration-300",
+                  isActive ? "text-primary-400" : "group-hover:text-primary-400"
+                )} />
+                {(!isCollapsed || isMobileOpen) && (
+                  <span className="font-medium">{item.name}</span>
+                )}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
 
       {/* Footer */}
       <div className="p-6 border-t border-gray-700">
