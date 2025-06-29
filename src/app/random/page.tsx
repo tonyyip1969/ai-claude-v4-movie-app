@@ -128,24 +128,20 @@ export default function RandomPage() {
 
         {/* Loading State */}
         {loading && (
-          <div className="flex justify-center">
-            <div className="w-full max-w-2xl">
-              <MovieCardSkeleton />
-            </div>
+          <div className="w-full">
+            <MovieCardSkeleton />
           </div>
         )}
 
         {/* Random Movie */}
         {!loading && movie && (
-          <div className="flex justify-center">
-            <div className="w-full max-w-2xl">
-              <MovieCard
-                movie={movie}
-                onFavoriteToggle={handleFavoriteToggle}
-                onWatchlistToggle={handleWatchlistToggle}
-                className={favoriteChanging ? 'opacity-70 pointer-events-none' : ''}
-              />
-            </div>
+          <div className="w-full">
+            <MovieCard
+              movie={movie}
+              onFavoriteToggle={handleFavoriteToggle}
+              onWatchlistToggle={handleWatchlistToggle}
+              className={favoriteChanging ? 'opacity-70 pointer-events-none' : ''}
+            />
           </div>
         )}
 
