@@ -264,9 +264,9 @@ class MovieDatabase {
   searchMovies(query: string): Movie[] {
     const movies = this.db.prepare(`
       SELECT * FROM movies 
-      WHERE title LIKE ? OR description LIKE ? 
+      WHERE title LIKE ? OR description LIKE ? OR code LIKE ? 
       ORDER BY title
-    `).all(`%${query}%`, `%${query}%`) as any[];
+    `).all(`%${query}%`, `%${query}%`, `%${query}%`) as any[];
     
     // Convert SQLite integers to booleans for isFavourite and isInWatchlist
     return movies.map(movie => ({

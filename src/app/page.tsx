@@ -247,7 +247,7 @@ export default function HomePage() {
           <SearchBar
             onResults={handleSearchResults}
             onClear={handleSearchClear}
-            placeholder="Search for movies by title or description..."
+            placeholder="Search for movie code, title, or description..."
             className="w-full"
           />
         </div>

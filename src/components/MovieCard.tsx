@@ -142,9 +142,9 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
             </button>
           </div>
 
-          {/* Rating badge */}
+          {/* Movie code badge */}
           <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1 border border-white/20">
-            <span className="text-white text-xs font-medium">{movie.rating}/10</span>
+            <span className="text-white text-xs font-medium font-mono">{movie.code}</span>
           </div>
         </div>
 
@@ -154,9 +154,6 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
             <h3 className="font-semibold text-white text-lg leading-tight mb-1 line-clamp-1">
               {movie.title}
             </h3>
-            <p className="text-gray-400 text-sm leading-relaxed line-clamp-2">
-              {truncateText(movie.description, 80)}
-            </p>
           </div>
 
           {/* Rating */}
@@ -172,9 +169,8 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
             </span>
           </div>
 
-          {/* Movie code and status */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-            <span className="text-xs text-gray-500 font-mono">{movie.code}</span>
+          {/* Status indicators */}
+          <div className="flex items-center justify-end pt-2 border-t border-gray-700">
             <div className="flex items-center space-x-3">
               {movie.isFavourite && (
                 <div className="flex items-center space-x-1 text-red-400">

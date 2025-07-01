@@ -17,7 +17,7 @@ export default function SearchBar({
   onResults, 
   onClear, 
   className, 
-  placeholder = "Search movies..." 
+  placeholder = "Search for movie code, title, or description..." 
 }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
