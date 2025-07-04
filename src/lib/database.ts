@@ -19,7 +19,10 @@ class MovieDatabase {
   private db: Database.Database;
 
   constructor() {
-    const dbPath = path.join(process.cwd(), 'movies.db');
+    // Get database path from environment variable or fallback to default
+    const dbPath = process.env.DB_PATH
+      ? path.resolve(process.env.DB_PATH)
+      : path.join(process.cwd(), 'movies.db');
     this.db = new Database(dbPath);
     this.initializeDatabase();
     this.seedData();

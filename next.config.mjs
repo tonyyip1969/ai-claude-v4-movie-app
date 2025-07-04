@@ -5,15 +5,9 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'picsum.photos',
+        hostname: '**',
         port: '',
         pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'commondatastorage.googleapis.com',
-        port: '',
-        pathname: '/gtv-videos-bucket/**',
       },
     ],
   },
