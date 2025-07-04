@@ -35,7 +35,8 @@ export default function SearchBar({
 
   // Debounced search function - now stable since it doesn't depend on changing props
   const debouncedSearch = useCallback(
-    debounce(async (searchQuery: string) => {
+    debounce(async (...args: unknown[]) => {
+      const searchQuery = (args[0] as string) ?? '';
       if (!searchQuery.trim()) {
         onClearRef.current();
         setIsLoading(false);
@@ -139,7 +140,7 @@ export default function SearchBar({
               </div>
             ) : (
               <div className="text-sm text-gray-400">
-                Press Enter to search for "{query}"
+                Press Enter to search for &quot;{query}&quot;
               </div>
             )}
           </div>

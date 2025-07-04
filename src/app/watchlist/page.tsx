@@ -162,7 +162,7 @@ export default function WatchlistPage() {
             <div className="space-y-2">
               <h3 className="text-2xl font-semibold text-gray-300">Your watchlist is empty</h3>
               <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
-                Start building your watchlist by browsing movies and clicking the "Add to Watchlist" button on movies you want to watch later.
+                Start building your watchlist by browsing movies and clicking the &quot;Add to Watchlist&quot; button on movies you want to watch later.
               </p>
             </div>
             <div className="flex justify-center">

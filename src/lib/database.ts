@@ -48,7 +48,7 @@ class MovieDatabase {
     // Add isInWatchlist column if it doesn't exist (for existing databases)
     try {
       this.db.exec(`ALTER TABLE movies ADD COLUMN isInWatchlist BOOLEAN DEFAULT FALSE`);
-    } catch (error) {
+    } catch {
       // Column already exists or other error, ignore
     }
   }
@@ -192,72 +192,65 @@ class MovieDatabase {
       SELECT * FROM movies 
       ORDER BY publishedAt DESC 
       LIMIT ? OFFSET ?
-    `).all(limit, offset) as any[];
-    
+    `).all(limit, offset) as unknown as Movie[];
     // Convert SQLite integers to booleans for isFavourite and isInWatchlist
     const convertedMovies = movies.map(movie => ({
       ...movie,
-      isFavourite: Boolean(movie.isFavourite),
-      isInWatchlist: Boolean(movie.isInWatchlist)
+      isFavourite: Boolean((movie as Movie).isFavourite),
+      isInWatchlist: Boolean((movie as Movie).isInWatchlist)
     })) as Movie[];
-    
     const totalResult = this.db.prepare('SELECT COUNT(*) as count FROM movies').get() as { count: number };
     const total = totalResult.count;
     const totalPages = Math.ceil(total / limit);
-    
     return { movies: convertedMovies, total, totalPages };
   }
 
   // Get favorite movies
   getFavoriteMovies(): Movie[] {
-    const movies = this.db.prepare('SELECT * FROM movies WHERE isFavourite = 1 ORDER BY title').all() as any[];
-    
+    const movies = this.db.prepare('SELECT * FROM movies WHERE isFavourite = 1 ORDER BY title').all() as unknown as Movie[];
     // Convert SQLite integers to booleans for isFavourite and isInWatchlist
     return movies.map(movie => ({
       ...movie,
-      isFavourite: Boolean(movie.isFavourite),
-      isInWatchlist: Boolean(movie.isInWatchlist)
+      isFavourite: Boolean((movie as Movie).isFavourite),
+      isInWatchlist: Boolean((movie as Movie).isInWatchlist)
     })) as Movie[];
   }
 
   // Get watchlist movies
   getWatchlistMovies(): Movie[] {
-    const movies = this.db.prepare('SELECT * FROM movies WHERE isInWatchlist = 1 ORDER BY title').all() as any[];
-    
+    const movies = this.db.prepare('SELECT * FROM movies WHERE isInWatchlist = 1 ORDER BY title').all() as unknown as Movie[];
     // Convert SQLite integers to booleans for isFavourite and isInWatchlist
     return movies.map(movie => ({
       ...movie,
-      isFavourite: Boolean(movie.isFavourite),
-      isInWatchlist: Boolean(movie.isInWatchlist)
+      isFavourite: Boolean((movie as Movie).isFavourite),
+      isInWatchlist: Boolean((movie as Movie).isInWatchlist)
     })) as Movie[];
   }
 
   // Get random movie
   getRandomMovie(): Movie | null {
-    const result = this.db.prepare('SELECT * FROM movies ORDER BY RANDOM() LIMIT 1').get() as any;
-    
+    const result = this.db.prepare('SELECT * FROM movies ORDER BY RANDOM() LIMIT 1').get() as unknown;
     if (!result) return null;
-    
     // Convert SQLite integers to booleans for isFavourite and isInWatchlist
+    const movie = result as Movie;
     return {
-      ...result,
-      isFavourite: Boolean(result.isFavourite),
-      isInWatchlist: Boolean(result.isInWatchlist)
-    } as Movie;
+      ...movie,
+      isFavourite: Boolean(movie.isFavourite),
+      isInWatchlist: Boolean(movie.isInWatchlist)
+    };
   }
 
   // Get movie by ID
   getMovieById(id: number): Movie | null {
-    const result = this.db.prepare('SELECT * FROM movies WHERE id = ?').get(id) as any;
-    
+    const result = this.db.prepare('SELECT * FROM movies WHERE id = ?').get(id) as unknown;
     if (!result) return null;
-    
     // Convert SQLite integers to booleans for isFavourite and isInWatchlist
+    const movie = result as Movie;
     return {
-      ...result,
-      isFavourite: Boolean(result.isFavourite),
-      isInWatchlist: Boolean(result.isInWatchlist)
-    } as Movie;
+      ...movie,
+      isFavourite: Boolean(movie.isFavourite),
+      isInWatchlist: Boolean(movie.isInWatchlist)
+    };
   }
 
   // Search movies
@@ -266,13 +259,12 @@ class MovieDatabase {
       SELECT * FROM movies 
       WHERE title LIKE ? OR description LIKE ? OR code LIKE ? 
       ORDER BY title
-    `).all(`%${query}%`, `%${query}%`, `%${query}%`) as any[];
-    
+    `).all(`%${query}%`, `%${query}%`, `%${query}%`) as unknown as Movie[];
     // Convert SQLite integers to booleans for isFavourite and isInWatchlist
     return movies.map(movie => ({
       ...movie,
-      isFavourite: Boolean(movie.isFavourite),
-      isInWatchlist: Boolean(movie.isInWatchlist)
+      isFavourite: Boolean((movie as Movie).isFavourite),
+      isInWatchlist: Boolean((movie as Movie).isInWatchlist)
     })) as Movie[];
   }
 

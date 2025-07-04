@@ -113,9 +113,13 @@ export async function PATCH(
             { status: 500 }
           );
         }
-      } catch (error: any) {
+      } catch (error) {
+        let message = 'Failed to update rating';
+        if (error instanceof Error) {
+          message = error.message;
+        }
         return NextResponse.json(
-          { error: error.message || 'Failed to update rating' },
+          { error: message },
           { status: 400 }
         );
       }

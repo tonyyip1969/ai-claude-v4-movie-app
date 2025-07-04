@@ -5,7 +5,6 @@ import { Movie } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
 import { MovieGridSkeleton } from '@/components/LoadingSkeleton';
 import { Heart, HeartOff } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useSettings } from '@/hooks/useSettings';
 
 export default function FavoritesPage() {
@@ -13,7 +12,8 @@ export default function FavoritesPage() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [favoriteChanging, setFavoriteChanging] = useState<number | null>(null);
-  const [ratingChanging, setRatingChanging] = useState<number | null>(null);
+  // Removed unused ratingChanging state to resolve lint error
+  // const [ratingChanging, setRatingChanging] = useState<number | null>(null);
 
   const fetchFavorites = async () => {
     setLoading(true);
@@ -62,7 +62,7 @@ export default function FavoritesPage() {
 
   // Handle rating update
   const handleRatingUpdate = async (movieId: number, rating: number) => {
-    setRatingChanging(movieId);
+    // setRatingChanging(movieId); // Removed unused state
     
     try {
       const response = await fetch(`/api/movies/${movieId}`, {
@@ -89,7 +89,7 @@ export default function FavoritesPage() {
     } catch (error) {
       console.error('Error updating rating:', error);
     } finally {
-      setRatingChanging(null);
+      // setRatingChanging(null); // Removed unused state
     }
   };
 
@@ -138,7 +138,7 @@ export default function FavoritesPage() {
             <Heart className="w-7 h-7 text-white fill-white" />
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold text-white">
-            Your{' '}
+            Your&nbsp;
             <span className="bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
               Favorites
             </span>
@@ -146,7 +146,7 @@ export default function FavoritesPage() {
         </div>
         
         <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
-          Your personally curated collection of favorite movies. All the films you've marked as favorites are here for easy access.
+          Your personally curated collection of favorite movies. All the films you&apos;ve marked as favorites are here for easy access.
         </p>
       </div>
 
@@ -198,7 +198,7 @@ export default function FavoritesPage() {
             <div className="space-y-2">
               <h3 className="text-2xl font-semibold text-gray-300">No favorites yet</h3>
               <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
-                You haven't added any movies to your favorites. Browse our collection and click the heart icon on movies you love to add them here.
+                You haven&apos;t added any movies to your favorites. Browse our collection and click the heart icon on movies you love to add them here.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4">

@@ -100,7 +100,7 @@ export default function RandomPage() {
         </div>
         
         <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
-          Can't decide what to watch? Let us surprise you! Discover new movies through our random selection feature and find your next favorite film.
+          Can&apos;t decide what to watch? Let us surprise you! Discover new movies through our random selection feature and find your next favorite film.
         </p>
 
         {/* Random Button */}
@@ -180,7 +180,7 @@ export default function RandomPage() {
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-white">Random Movie Selection</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
-                Each time you click "Get Another Random Movie", we'll surprise you with a different film from our collection. 
+                Each time you click &quot;Get Another Random Movie&quot;, we&apos;ll surprise you with a different film from our collection. 
                 This is a great way to discover movies you might not have found otherwise!
               </p>
             </div>

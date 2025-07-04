@@ -80,7 +80,6 @@ export default function HomePage() {
   // Handle favorite toggle
   const handleFavoriteToggle = async (movieId: number) => {
     setFavoriteChanging(movieId);
-    
     try {
       const response = await fetch(`/api/movies/${movieId}`, {
         method: 'PATCH',
@@ -91,11 +90,8 @@ export default function HomePage() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        const { isFavourite } = data;
-        
+        const { isFavourite } = await response.json();
         console.log('Favorite toggled successfully:', movieId, 'New status:', isFavourite);
-        
         // Update the movie in current state
         if (searchMode) {
           setSearchResults(prev => 
@@ -139,10 +135,8 @@ export default function HomePage() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        
+        await response.json();
         console.log('Rating updated successfully:', movieId, 'New rating:', rating);
-        
         // Update the movie in current state
         if (searchMode) {
           setSearchResults(prev => 
@@ -316,7 +310,7 @@ export default function HomePage() {
             </div>
             <h3 className="text-xl font-semibold text-gray-300">No movies found</h3>
             <p className="text-gray-500 max-w-md mx-auto">
-              We couldn't find any movies matching your search. Try different keywords or browse our collection.
+              We couldn&apos;t find any movies matching your search. Try different keywords or browse our collection.
             </p>
           </div>
         )}

@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Play, Star, Clock } from 'lucide-react';
+import { Heart, Play, Clock } from 'lucide-react';
 import { Movie } from '@/types/movie';
-import { cn, truncateText } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import RatingComponent from './RatingComponent';
 
 interface MovieCardProps {
