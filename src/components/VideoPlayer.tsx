@@ -4,6 +4,14 @@ import { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// TypeScript interface for HLS error data
+interface HLSErrorData {
+  type: string;
+  fatal: boolean;
+  details?: string;
+  response?: { code: number; text: string };
+}
+
 // Dynamically import HLS.js to avoid SSR issues
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let Hls: any = null;
@@ -112,37 +120,67 @@ export default function VideoPlayer({ src, poster, title, className, onEscape }:
     }
 
     if (isHLS) {
+      // Generate proxy URL for HLS streams
+      const proxyUrl = `/api/hls-proxy?url=${encodeURIComponent(src)}`;
+      
       // Use HLS.js for m3u8 streams
       if (Hls && Hls.isSupported()) {
         const hls = new Hls({
           enableWorker: false,
           lowLatencyMode: true,
-          backBufferLength: 90
+          backBufferLength: 90,
+          xhrSetup: (xhr: XMLHttpRequest) => {
+            // Add custom headers for HLS requests
+            xhr.setRequestHeader('Accept', 'application/vnd.apple.mpegurl');
+          },
         });
 
         hlsRef.current = hls;
 
-        hls.loadSource(src);
+        hls.loadSource(proxyUrl);
         hls.attachMedia(video);
+
+        hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+          console.log('HLS: Media attached');
+        });
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setIsLoading(false);
-          console.log('HLS manifest loaded successfully');
+          console.log('HLS: Manifest parsed');
         });
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        hls.on(Hls.Events.ERROR, (event: any, data: any) => {
-          console.error('HLS error:', data);
-          if (data.fatal) {
-            switch (data.type) {
+        hls.on(Hls.Events.ERROR, (event: string, data: unknown) => {
+          console.error('HLS Error:', data);
+          if (
+            typeof data === 'object' &&
+            data !== null &&
+            'fatal' in data &&
+            'type' in data &&
+            typeof (data as { fatal: unknown }).fatal === 'boolean' &&
+            typeof (data as { type: unknown }).type === 'string'
+          ) {
+            const typedData = data as HLSErrorData;
+            
+            // Handle non-fatal errors
+            if (!typedData.fatal) {
+              console.warn('Non-fatal HLS error:', typedData.details || 'unknown');
+              return;
+            }
+            
+            // Handle fatal errors
+            switch (typedData.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
-                setError('Network error loading video stream');
+                console.log('Fatal network error encountered, trying to recover...');
+                setError('Network error occurred, retrying...');
                 hls.startLoad();
                 break;
+              
               case Hls.ErrorTypes.MEDIA_ERROR:
-                setError('Media error in video stream');
+                console.log('Fatal media error encountered, trying to recover...');
+                setError('Media error occurred, trying to recover...');
                 hls.recoverMediaError();
                 break;
+              
               default:
                 setError('Fatal error loading video stream');
                 hls.destroy();
@@ -156,8 +194,14 @@ export default function VideoPlayer({ src, poster, title, className, onEscape }:
         };
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // Native HLS support (Safari)
-        video.src = src;
-        setIsLoading(false);
+        video.src = proxyUrl;
+        video.addEventListener('loadedmetadata', () => {
+          setIsLoading(false);
+        });
+        video.addEventListener('error', () => {
+          setError('Video playback error');
+          setIsLoading(false);
+        });
       } else {
         setError('HLS not supported in this browser');
         setIsLoading(false);
