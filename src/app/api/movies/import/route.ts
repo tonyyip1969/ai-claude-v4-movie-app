@@ -3,6 +3,9 @@ import { movieDB } from '@/lib/database';
 import { parseCsvContent, validateMovieData, normalizeMovieData } from '@/lib/csvParser';
 import { ImportResult, CsvMovieData } from '@/types/import';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/movies/import
  * Handles CSV file upload and processes movie data import

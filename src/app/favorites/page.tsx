@@ -18,7 +18,13 @@ export default function FavoritesPage() {
   const fetchFavorites = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/movies/favorites');
+      const response = await fetch('/api/movies/favorites', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      });
       const data = await response.json();
       
       if (response.ok) {

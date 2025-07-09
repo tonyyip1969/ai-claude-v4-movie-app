@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  // output: 'standalone',
+  experimental: {
+    // Ensure API routes are properly handled during static generation
+    serverComponentsExternalPackages: ['sqlite3'],
+  },
   images: {
     remotePatterns: [
       {
@@ -22,11 +26,23 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Methods',
-            value: 'GET, HEAD, OPTIONS',
+            value: 'GET, HEAD, OPTIONS, POST, PATCH, DELETE',
           },
           {
             key: 'Access-Control-Allow-Headers',
-            value: 'Range, Content-Type',
+            value: 'Range, Content-Type, Authorization',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
           },
         ],
       },

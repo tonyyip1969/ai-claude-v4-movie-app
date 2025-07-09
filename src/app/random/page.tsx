@@ -14,7 +14,13 @@ export default function RandomPage() {
   const fetchRandomMovie = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/movies/random');
+      const response = await fetch('/api/movies/random', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      });
       const data = await response.json();
       
       if (response.ok) {

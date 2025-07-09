@@ -17,7 +17,13 @@ export default function WatchlistPage() {
     const fetchWatchlistMovies = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/movies/watchlist');
+        const response = await fetch('/api/movies/watchlist', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+          },
+        });
         const data = await response.json();
         
         if (response.ok) {

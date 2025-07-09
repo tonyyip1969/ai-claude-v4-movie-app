@@ -27,7 +27,13 @@ export default function HomePage() {
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/movies?page=${page}&limit=${moviesPerPage}`);
+      const response = await fetch(`/api/movies?page=${page}&limit=${moviesPerPage}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      });
       const data: PaginatedMovies = await response.json();
       
       if (response.ok) {
