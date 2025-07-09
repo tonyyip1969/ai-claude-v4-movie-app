@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Heart, Shuffle, Menu, X, Film, Clock, Settings } from 'lucide-react';
+import { Home, Heart, Shuffle, Menu, X, Film, Clock, Settings, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
@@ -11,6 +11,7 @@ const navigation = [
   { name: 'Favourites', href: '/favorites', icon: Heart },
   { name: 'Watch List', href: '/watchlist', icon: Clock },
   { name: 'Random', href: '/random', icon: Shuffle },
+  { name: 'Import', href: '/import', icon: Upload },
 ];
 
 const bottomNavigation = [

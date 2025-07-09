@@ -1,0 +1,4 @@
+code,title,description,videoUrl,coverUrl,isFavourite,rating,publishedAt
+TEST001,"Test Movie 1","This is a test movie for CSV import functionality","https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4","https://picsum.photos/300/450?random=999",false,7,"2024-01-01"
+TEST002,"Test Movie 2","Another test movie with different settings","https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4","https://picsum.photos/300/450?random=998",true,9,"2024-02-01"
+TEST003,"Test Movie 3","Third test movie with minimal data","https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4","",false,5,"2024-03-01"
