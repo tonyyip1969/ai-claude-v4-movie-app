@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Heart, Shuffle, Menu, X, Film, Clock, Settings, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 const navigation = [
   { name: 'Home', href: '/', icon: Home },
@@ -23,8 +24,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ className }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { isCollapsed, isMobileOpen, setIsMobileOpen, toggleSidebar } = useSidebar();
   const [counts, setCounts] = useState<{ favorites: number; watchlist: number }>({ favorites: 0, watchlist: 0 });
   const pathname = usePathname();
 
@@ -53,7 +53,7 @@ export default function Sidebar({ className }: SidebarProps) {
   // Close mobile sidebar when route changes
   useEffect(() => {
     setIsMobileOpen(false);
-  }, [pathname]);
+  }, [pathname, setIsMobileOpen]);
 
   // Handle mobile responsive behavior
   useEffect(() => {
@@ -65,15 +65,7 @@ export default function Sidebar({ className }: SidebarProps) {
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const toggleSidebar = () => {
-    if (window.innerWidth < 1024) {
-      setIsMobileOpen(!isMobileOpen);
-    } else {
-      setIsCollapsed(!isCollapsed);
-    }
-  };
+  }, [setIsMobileOpen]);
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
@@ -212,7 +204,7 @@ export default function Sidebar({ className }: SidebarProps) {
         {/* Collapse toggle button (desktop only) */}
         <div className="hidden lg:block mt-4">
           <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={toggleSidebar}
             className="w-full flex items-center justify-center py-2 text-gray-400 hover:text-white transition-colors"
           >
             <Menu className="w-5 h-5" />
