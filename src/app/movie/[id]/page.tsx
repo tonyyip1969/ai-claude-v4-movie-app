@@ -219,7 +219,7 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
         </div>
 
         {/* Main Content */}
-        <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 px-2 pb-6">
+        <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 px-0 pb-6">
           {/* Left Side - Movie Poster and Rating */}
           <div className="flex-[3] space-y-6">
             <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden bg-gray-800 shadow-2xl">

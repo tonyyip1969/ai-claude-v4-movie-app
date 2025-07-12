@@ -186,9 +186,9 @@ function FavoritesContent() {
           </h1>
         </div>
         
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
+        {/* <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
           Your personally curated collection of favorite movies. All the films you&apos;ve marked as favorites are here for easy access.
-        </p>
+        </p> */}
       </div>
 
       {/* Content Section */}

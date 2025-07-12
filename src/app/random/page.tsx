@@ -105,9 +105,9 @@ export default function RandomPage() {
           </h1>
         </div>
         
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
+        {/* <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
           Can&apos;t decide what to watch? Let us surprise you! Discover new movies through our random selection feature and find your next favorite film.
-        </p>
+        </p> */}
 
         {/* Random Button */}
         <div className="flex justify-center">
@@ -125,12 +125,12 @@ export default function RandomPage() {
       {/* Content Section */}
       <div className="space-y-6">
         {/* Section Header */}
-        {!loading && movie && (
+        {/* {!loading && movie && (
           <div className="flex items-center justify-center space-x-3">
             <Dice6 className="w-6 h-6 text-purple-400" />
             <h2 className="text-2xl font-bold text-white">Your Random Pick</h2>
           </div>
-        )}
+        )} */}
 
         {/* Loading State */}
         {loading && (

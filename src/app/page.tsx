@@ -250,10 +250,10 @@ function HomeContent() {
           </h1>
         </div>
         
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
+        {/* <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
           Explore our vast collection of movies with stunning visuals and immersive experiences. 
           Find your next favorite film in our carefully curated selection.
-        </p>
+        </p> */}
 
         {/* Search Bar */}
         <div className="max-w-2xl mx-auto">

@@ -69,8 +69,8 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
       "animate-fade-in",
       className
     )}>
+      {/* Clickable Image Container - Only this part navigates */}
       <Link href={movieUrl} className="block">
-        {/* Image Container */}
         <div className="relative aspect-[16/9] overflow-hidden">
           {imageLoading && (
             <div className="absolute inset-0 skeleton rounded-lg" />
@@ -114,79 +114,82 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="absolute top-3 right-3 flex flex-col space-y-2">
-            {/* Favorite button */}
-            <button
-              onClick={handleFavoriteClick}
-              className={cn(
-                "p-2 rounded-full transition-all duration-300",
-                "bg-black/50 backdrop-blur-sm border border-white/20",
-                "hover:bg-black/70 hover:scale-110 active:scale-95",
-                "opacity-100" // Always visible
-              )}
-              aria-label={movie.isFavourite ? "Remove from favorites" : "Add to favorites"}
-            >
-              <Heart
-                className={cn(
-                  "w-4 h-4 transition-colors duration-300",
-                  movie.isFavourite 
-                    ? "text-red-500 fill-red-500" 
-                    : "text-white hover:text-red-400"
-                )}
-              />
-            </button>
-
-            {/* Watchlist button */}
-            <button
-              onClick={handleWatchlistClick}
-              className={cn(
-                "p-2 rounded-full transition-all duration-300",
-                "bg-black/50 backdrop-blur-sm border border-white/20",
-                "hover:bg-black/70 hover:scale-110 active:scale-95",
-                "opacity-100" // Always visible
-              )}
-              aria-label={movie.isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
-            >
-              <Clock
-                className={cn(
-                  "w-4 h-4 transition-colors duration-300",
-                  movie.isInWatchlist 
-                    ? "text-blue-500 fill-blue-500" 
-                    : "text-white hover:text-blue-400"
-                )}
-              />
-            </button>
-          </div>
-
           {/* Movie code badge */}
           <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1 border border-white/20">
             <span className="text-white text-xs font-medium font-mono">{movie.code}</span>
           </div>
         </div>
+      </Link>
 
-        {/* Content */}
-        <div className="p-4 space-y-3">
-          <div>
-            <h3 className="font-semibold text-white text-base leading-tight mb-1 line-clamp-1">
+      {/* Action buttons - Outside of Link */}
+      <div className="absolute top-3 right-3 flex flex-col space-y-2 z-10">
+        {/* Favorite button */}
+        <button
+          onClick={handleFavoriteClick}
+          className={cn(
+            "p-2 rounded-full transition-all duration-300",
+            "bg-black/50 backdrop-blur-sm border border-white/20",
+            "hover:bg-black/70 hover:scale-110 active:scale-95",
+            "opacity-100" // Always visible
+          )}
+          aria-label={movie.isFavourite ? "Remove from favorites" : "Add to favorites"}
+        >
+          <Heart
+            className={cn(
+              "w-4 h-4 transition-colors duration-300",
+              movie.isFavourite 
+                ? "text-red-500 fill-red-500" 
+                : "text-white hover:text-red-400"
+            )}
+          />
+        </button>
+
+        {/* Watchlist button */}
+        <button
+          onClick={handleWatchlistClick}
+          className={cn(
+            "p-2 rounded-full transition-all duration-300",
+            "bg-black/50 backdrop-blur-sm border border-white/20",
+            "hover:bg-black/70 hover:scale-110 active:scale-95",
+            "opacity-100" // Always visible
+          )}
+          aria-label={movie.isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+        >
+          <Clock
+            className={cn(
+              "w-4 h-4 transition-colors duration-300",
+              movie.isInWatchlist 
+                ? "text-blue-500 fill-blue-500" 
+                : "text-white hover:text-blue-400"
+            )}
+          />
+        </button>
+      </div>
+
+      {/* Content - Not clickable for navigation */}
+      <div className="p-4 space-y-3">
+        {/* Movie title - clickable for navigation */}
+        <div>
+          <Link href={movieUrl}>
+            <h3 className="font-semibold text-white text-base leading-tight mb-1 line-clamp-1 hover:text-gray-300 transition-colors cursor-pointer">
               {movie.title}
             </h3>
-          </div>
-
-          {/* Rating */}
-          <div className="flex items-center justify-between">
-            <RatingComponent
-              rating={movie.rating}
-              onRatingChange={handleRatingChange}
-              size="sm"
-              showValue={true}
-            />
-            <span className="text-xs text-gray-500">
-              {new Date(movie.publishedAt).getFullYear()}
-            </span>
-          </div>
+          </Link>
         </div>
-      </Link>
+
+        {/* Rating and year - Interactive rating, non-clickable year */}
+        <div className="flex items-center justify-between">
+          <RatingComponent
+            rating={movie.rating}
+            onRatingChange={handleRatingChange}
+            size="sm"
+            showValue={true}
+          />
+          <span className="text-xs text-gray-500">
+            {new Date(movie.publishedAt).getFullYear()}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

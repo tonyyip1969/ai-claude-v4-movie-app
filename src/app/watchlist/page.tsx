@@ -145,9 +145,9 @@ function WatchlistContent() {
           </h1>
         </div>
         
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
+        {/* <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
           Your personal collection of movies to watch later. Save interesting films here and never lose track of what you want to see next.
-        </p>
+        </p> */}
       </div>
 
       {/* Content Section */}

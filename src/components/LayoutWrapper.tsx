@@ -27,10 +27,10 @@ function LayoutContent({ children }: LayoutWrapperProps) {
         <div className={cn(
           "container mx-auto py-8 lg:py-12 max-w-7xl transition-all duration-300",
           hideSidebar 
-            ? "px-4 lg:px-8" 
+            ? "px-2 lg:px-2" 
             : isCollapsed 
-              ? "px-3 lg:px-4" // Reduced padding when sidebar is collapsed
-              : "px-4 lg:px-8"  // Normal padding when sidebar is expanded
+              ? "px-2 lg:px-2" // Reduced padding when sidebar is collapsed
+              : "px-2 lg:px-2"  // Normal padding when sidebar is expanded
         )}>
           {children}
         </div>
