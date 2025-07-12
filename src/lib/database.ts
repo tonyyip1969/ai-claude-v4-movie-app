@@ -41,6 +41,17 @@ class MovieDatabase {
     } catch {
       // Column already exists or other error, ignore
     }
+
+    // Create settings table
+    const createSettingsTable = `
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    
+    this.db.exec(createSettingsTable);
   }
 
   // Get movies with pagination
@@ -305,6 +316,45 @@ class MovieDatabase {
       favorites: favoritesResult.count,
       watchlist: watchlistResult.count
     };
+  }
+
+  // Settings methods
+  getAllSettings(): Record<string, string> {
+    const rows = this.db.prepare('SELECT key, value FROM app_settings').all() as { key: string; value: string }[];
+    return rows.reduce((acc, row) => {
+      acc[row.key] = row.value;
+      return acc;
+    }, {} as Record<string, string>);
+  }
+
+  setSetting(key: string, value: string): void {
+    this.db.prepare(`
+      INSERT OR REPLACE INTO app_settings (key, value, updatedAt)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+    `).run(key, value);
+  }
+
+  setSettings(settings: Record<string, string>): void {
+    const transaction = this.db.transaction((settingsData: Record<string, string>) => {
+      const stmt = this.db.prepare(`
+        INSERT OR REPLACE INTO app_settings (key, value, updatedAt)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+      `);
+      
+      for (const [key, value] of Object.entries(settingsData)) {
+        stmt.run(key, value);
+      }
+    });
+    
+    transaction(settings);
+  }
+
+  deleteSetting(key: string): void {
+    this.db.prepare('DELETE FROM app_settings WHERE key = ?').run(key);
+  }
+
+  clearSettings(): void {
+    this.db.prepare('DELETE FROM app_settings').run();
   }
 }
 
