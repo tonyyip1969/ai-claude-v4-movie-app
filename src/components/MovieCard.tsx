@@ -106,7 +106,7 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
                 "p-2 rounded-full transition-all duration-300",
                 "bg-black/50 backdrop-blur-sm border border-white/20",
                 "hover:bg-black/70 hover:scale-110 active:scale-95",
-                "opacity-100 md:opacity-0 md:group-hover:opacity-100" // Always visible on mobile, hover on desktop
+                "opacity-100" // Always visible
               )}
               aria-label={movie.isFavourite ? "Remove from favorites" : "Add to favorites"}
             >
@@ -127,7 +127,7 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
                 "p-2 rounded-full transition-all duration-300",
                 "bg-black/50 backdrop-blur-sm border border-white/20",
                 "hover:bg-black/70 hover:scale-110 active:scale-95",
-                "opacity-100 md:opacity-0 md:group-hover:opacity-100" // Always visible on mobile, hover on desktop
+                "opacity-100" // Always visible
               )}
               aria-label={movie.isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
             >
@@ -151,7 +151,7 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
         {/* Content */}
         <div className="p-4 space-y-3">
           <div>
-            <h3 className="font-semibold text-white text-lg leading-tight mb-1 line-clamp-1">
+            <h3 className="font-semibold text-white text-base leading-tight mb-1 line-clamp-1">
               {movie.title}
             </h3>
           </div>
@@ -167,24 +167,6 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
             <span className="text-xs text-gray-500">
               {new Date(movie.publishedAt).getFullYear()}
             </span>
-          </div>
-
-          {/* Status indicators */}
-          <div className="flex items-center justify-end pt-2 border-t border-gray-700">
-            <div className="flex items-center space-x-3">
-              {movie.isFavourite && (
-                <div className="flex items-center space-x-1 text-red-400">
-                  <Heart className="w-3 h-3 fill-current" />
-                  <span className="text-xs">Favorite</span>
-                </div>
-              )}
-              {movie.isInWatchlist && (
-                <div className="flex items-center space-x-1 text-blue-400">
-                  <Clock className="w-3 h-3 fill-current" />
-                  <span className="text-xs">Watchlist</span>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </Link>
