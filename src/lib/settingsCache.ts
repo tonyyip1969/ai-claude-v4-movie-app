@@ -13,6 +13,7 @@ class SettingsCache {
   private readonly defaultSettings: SettingsData = {
     gridColumns: 5,
     gridRows: 4,
+    sidebarCollapsed: false,
   };
 
   /**

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Movie } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
@@ -16,7 +16,7 @@ interface PaginatedFavorites {
   currentPage: number;
 }
 
-export default function FavoritesPage() {
+function FavoritesContent() {
   const { settings, moviesPerPage, isLoaded } = useSettings();
   const searchParams = useSearchParams();
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -292,5 +292,13 @@ export default function FavoritesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function FavoritesPage() {
+  return (
+    <Suspense fallback={<MovieGridSkeleton />}>
+      <FavoritesContent />
+    </Suspense>
   );
 }

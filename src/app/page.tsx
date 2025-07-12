@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Movie, PaginatedMovies } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
@@ -11,7 +11,7 @@ import { Film, Search as SearchIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/hooks/useSettings';
 
-export default function HomePage() {
+function HomeContent() {
   const { settings, moviesPerPage, isLoaded } = useSettings();
   const searchParams = useSearchParams();
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -360,5 +360,13 @@ export default function HomePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<MovieGridSkeleton />}>
+      <HomeContent />
+    </Suspense>
   );
 }

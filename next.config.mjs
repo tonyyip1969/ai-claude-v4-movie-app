@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // output: 'standalone',
+  output: 'standalone',
   experimental: {
     // Ensure API routes are properly handled during static generation
     serverComponentsExternalPackages: ['sqlite3'],

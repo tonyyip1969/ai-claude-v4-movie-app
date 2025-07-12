@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Movie } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
@@ -16,7 +16,7 @@ interface PaginatedWatchlist {
   currentPage: number;
 }
 
-export default function WatchlistPage() {
+function WatchlistContent() {
   const { settings, moviesPerPage, isLoaded } = useSettings();
   const searchParams = useSearchParams();
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -260,5 +260,13 @@ export default function WatchlistPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function WatchlistPage() {
+  return (
+    <Suspense fallback={<MovieCardSkeleton />}>
+      <WatchlistContent />
+    </Suspense>
   );
 }

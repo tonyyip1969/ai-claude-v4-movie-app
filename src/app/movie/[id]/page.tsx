@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import Link from 'next/link';
 import { ArrowLeft, Heart, Play, Star, Calendar, Code, Film, Clock } from 'lucide-react';
 import { Movie } from '@/types/movie';
 import VideoModal from '@/components/VideoModal';
@@ -15,7 +14,7 @@ interface MovieDetailPageProps {
   params: { id: string };
 }
 
-export default function MovieDetailPage({ params }: MovieDetailPageProps) {
+function MovieDetailContent({ params }: MovieDetailPageProps) {
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,9 +25,6 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
   const [imageError, setImageError] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  // Get the page parameter from URL
-  const returnPage = searchParams.get('page');
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -408,5 +404,13 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
         title={movie.title}
       />
     </div>
+  );
+}
+
+export default function MovieDetailPage({ params }: MovieDetailPageProps) {
+  return (
+    <Suspense fallback={<MovieDetailSkeleton />}>
+      <MovieDetailContent params={params} />
+    </Suspense>
   );
 }
