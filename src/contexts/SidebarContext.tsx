@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useSettings } from '@/hooks/useSettings';
 
 interface SidebarContextType {
   isCollapsed: boolean;
@@ -13,8 +14,24 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { settings, updateSettings, isLoaded } = useSettings();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  // Use settings value for collapsed state, but only after settings are loaded
+  const [isCollapsed, setIsCollapsedState] = useState(false);
+
+  // Update local collapsed state when settings are loaded
+  useEffect(() => {
+    if (isLoaded) {
+      setIsCollapsedState(settings.sidebarCollapsed);
+    }
+  }, [settings.sidebarCollapsed, isLoaded]);
+
+  const setIsCollapsed = (collapsed: boolean) => {
+    setIsCollapsedState(collapsed);
+    // Update settings to persist the change
+    updateSettings({ sidebarCollapsed: collapsed });
+  };
 
   const toggleSidebar = () => {
     if (window.innerWidth < 1024) {

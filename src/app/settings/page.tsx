@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, RotateCcw, Grid } from 'lucide-react';
+import { Settings as SettingsIcon, Save, RotateCcw, Grid, Sidebar } from 'lucide-react';
 import { useSettings, SettingsData } from '@/hooks/useSettings';
 
 export default function SettingsPage() {
@@ -151,7 +151,7 @@ export default function SettingsPage() {
               {Array.from({ length: calculateTotalCards() }).map((_, index) => (
                 <div
                   key={index}
-                  className="aspect-[3/4] bg-gray-700 rounded text-xs flex items-center justify-center text-gray-400"
+                  className="aspect-[16/9] bg-gray-700 rounded text-xs flex items-center justify-center text-gray-400"
                 >
                   {index + 1}
                 </div>
@@ -160,6 +160,53 @@ export default function SettingsPage() {
             <p className="text-xs text-gray-500 mt-2">
               Total cards per page: {calculateTotalCards()} movies
             </p>
+          </div>
+        </div>
+
+        {/* Sidebar Setting */}
+        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 space-y-4">
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-center w-10 h-10 bg-indigo-500/20 rounded-lg">
+              <Sidebar className="w-5 h-5 text-indigo-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-white">Sidebar</h3>
+              <p className="text-gray-400 text-sm">Configure sidebar display preferences</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <label className="text-white font-medium">Collapse by Default</label>
+                <p className="text-gray-400 text-sm">Start with sidebar collapsed on desktop</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={localSettings.sidebarCollapsed}
+                  onChange={(e) => updateLocalSetting('sidebarCollapsed', e.target.checked)}
+                />
+                <div className={`w-11 h-6 rounded-full transition-colors ${
+                  localSettings.sidebarCollapsed ? 'bg-indigo-600' : 'bg-gray-600'
+                }`}>
+                  <div className={`w-5 h-5 bg-white rounded-full shadow-lg transform transition-transform ${
+                    localSettings.sidebarCollapsed ? 'translate-x-5' : 'translate-x-0.5'
+                  } mt-0.5`}></div>
+                </div>
+              </label>
+            </div>
+
+            <div className="bg-gray-900/50 rounded-lg p-4">
+              <p className="text-sm text-gray-400 mb-2">
+                Status: {localSettings.sidebarCollapsed ? 'Collapsed' : 'Expanded'} by default
+              </p>
+              <p className="text-xs text-gray-500">
+                This setting controls whether the sidebar starts collapsed when you visit the app. 
+                You can always toggle it manually using the sidebar button.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -196,7 +243,7 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-white">About Settings</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
-                These settings control how movies are displayed throughout the app. 
+                These settings control how movies are displayed throughout the app and the sidebar behavior. 
                 Changes are saved locally in your browser and will persist between sessions. 
                 The number of movies per page is automatically calculated based on your grid layout (rows × columns).
               </p>

@@ -13,6 +13,7 @@ export class SettingsMigration {
   private static defaultSettings: SettingsData = {
     gridColumns: 5,
     gridRows: 4,
+    sidebarCollapsed: false,
   };
 
   /**
@@ -196,6 +197,10 @@ export class SettingsMigration {
       if (!isNaN(gridRows) && gridRows > 0) {
         parsed.gridRows = gridRows;
       }
+    }
+    
+    if (rawSettings.sidebarCollapsed !== undefined) {
+      parsed.sidebarCollapsed = rawSettings.sidebarCollapsed === 'true';
     }
     
     return parsed;

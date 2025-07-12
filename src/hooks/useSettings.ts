@@ -7,11 +7,13 @@ import { settingsCache } from '@/lib/settingsCache';
 export interface SettingsData {
   gridColumns: number;
   gridRows: number;
+  sidebarCollapsed: boolean;
 }
 
 const defaultSettings: SettingsData = {
   gridColumns: 5,
   gridRows: 4,
+  sidebarCollapsed: false,
 };
 
 const STORAGE_KEY = 'movie-app-settings';
@@ -25,6 +27,7 @@ export function useSettings() {
     return {
       gridColumns: settingsData.gridColumns.toString(),
       gridRows: settingsData.gridRows.toString(),
+      sidebarCollapsed: settingsData.sidebarCollapsed.toString(),
     };
   }, []);
 
