@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Movie, PaginatedMovies } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
 import SearchBar from '@/components/SearchBar';
@@ -12,6 +13,7 @@ import { useSettings } from '@/hooks/useSettings';
 
 export default function HomePage() {
   const { settings, moviesPerPage, isLoaded } = useSettings();
+  const searchParams = useSearchParams();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [searchResults, setSearchResults] = useState<Movie[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -20,6 +22,17 @@ export default function HomePage() {
   const [searchMode, setSearchMode] = useState(false);
   const [favoriteChanging, setFavoriteChanging] = useState<number | null>(null);
   const [ratingChanging, setRatingChanging] = useState<number | null>(null);
+
+  // Initialize page from URL parameter
+  useEffect(() => {
+    const pageFromUrl = searchParams.get('page');
+    if (pageFromUrl) {
+      const parsedPage = parseInt(pageFromUrl, 10);
+      if (!isNaN(parsedPage) && parsedPage > 0) {
+        setCurrentPage(parsedPage);
+      }
+    }
+  }, [searchParams]);
 
   // Fetch movies for current page
   const fetchMovies = async (page: number) => {
@@ -53,9 +66,9 @@ export default function HomePage() {
   // Load initial movies when settings are loaded
   useEffect(() => {
     if (isLoaded) {
-      fetchMovies(1);
+      fetchMovies(currentPage);
     }
-  }, [isLoaded, moviesPerPage]);
+  }, [isLoaded, moviesPerPage, currentPage]);
 
   // Refetch when settings change
   useEffect(() => {
@@ -299,6 +312,7 @@ export default function HomePage() {
                 onFavoriteToggle={handleFavoriteToggle}
                 onRatingUpdate={handleRatingUpdate}
                 onWatchlistToggle={handleWatchlistToggle}
+                currentPage={!searchMode ? currentPage : undefined}
                 className={cn(
                   favoriteChanging === movie.id && 'opacity-70 pointer-events-none',
                   ratingChanging === movie.id && 'opacity-70'

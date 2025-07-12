@@ -1,45 +1,82 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Movie } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
+import Pagination from '@/components/Pagination';
 import { MovieCardSkeleton } from '@/components/LoadingSkeleton';
 import { Clock, Bookmark, Play } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 
+interface PaginatedWatchlist {
+  movies: Movie[];
+  total: number;
+  totalPages: number;
+  currentPage: number;
+}
+
 export default function WatchlistPage() {
-  const { settings } = useSettings();
+  const { settings, moviesPerPage, isLoaded } = useSettings();
+  const searchParams = useSearchParams();
   const [movies, setMovies] = useState<Movie[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [watchlistChanging, setWatchlistChanging] = useState<Record<number, boolean>>({});
 
+  // Initialize page from URL parameter
   useEffect(() => {
-    const fetchWatchlistMovies = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch('/api/movies/watchlist', {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-          },
-        });
-        const data = await response.json();
-        
-        if (response.ok) {
-          setMovies(data);
-        } else {
-          console.error('Failed to fetch watchlist movies');
-        }
-      } catch (error) {
-        console.error('Error fetching watchlist movies:', error);
-      } finally {
-        setLoading(false);
+    const pageFromUrl = searchParams.get('page');
+    if (pageFromUrl) {
+      const parsedPage = parseInt(pageFromUrl, 10);
+      if (!isNaN(parsedPage) && parsedPage > 0) {
+        setCurrentPage(parsedPage);
       }
-    };
+    }
+  }, [searchParams]);
 
-    fetchWatchlistMovies();
-  }, []);
+  const fetchWatchlistMovies = async (page: number) => {
+    if (!isLoaded) return; // Wait for settings to load
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/movies/watchlist?page=${page}&limit=${moviesPerPage}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      });
+      const data: PaginatedWatchlist = await response.json();
+      
+      if (response.ok) {
+        setMovies(data.movies);
+        setTotalPages(data.totalPages);
+        setCurrentPage(data.currentPage);
+      } else {
+        console.error('Failed to fetch watchlist movies');
+      }
+    } catch (error) {
+      console.error('Error fetching watchlist movies:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load initial watchlist when settings are loaded
+  useEffect(() => {
+    if (isLoaded) {
+      fetchWatchlistMovies(currentPage);
+    }
+  }, [isLoaded, moviesPerPage, currentPage]);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchWatchlistMovies(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleWatchlistToggle = async (movieId: number) => {
     setWatchlistChanging(prev => ({ ...prev, [movieId]: true }));
@@ -117,11 +154,19 @@ export default function WatchlistPage() {
       <div className="space-y-6">
         {/* Stats */}
         {!loading && (
-          <div className="flex items-center justify-center space-x-3 text-sm text-gray-400">
-            <Bookmark className="w-4 h-4" />
-            <span>
-              {movies.length} {movies.length === 1 ? 'movie' : 'movies'} in your watchlist
-            </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3 text-sm text-gray-400">
+              <Bookmark className="w-4 h-4" />
+              <span>
+                {movies.length} {movies.length === 1 ? 'movie' : 'movies'} in your watchlist
+              </span>
+            </div>
+            
+            {totalPages > 1 && (
+              <p className="text-gray-400 text-sm">
+                Page {currentPage} of {totalPages}
+              </p>
+            )}
           </div>
         )}
 
@@ -153,6 +198,8 @@ export default function WatchlistPage() {
                 movie={movie}
                 onFavoriteToggle={handleFavoriteToggle}
                 onWatchlistToggle={handleWatchlistToggle}
+                currentPage={currentPage}
+                pageContext="watchlist"
                 className={watchlistChanging[movie.id] ? 'opacity-70 pointer-events-none' : ''}
               />
             ))}
@@ -183,6 +230,17 @@ export default function WatchlistPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="pt-8 border-t border-gray-800">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+        </div>
+      )}
 
       {/* Info Section */}
       {!loading && movies.length > 0 && (

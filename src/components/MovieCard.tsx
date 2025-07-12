@@ -14,9 +14,11 @@ interface MovieCardProps {
   onWatchlistToggle?: (id: number) => void;
   onRatingUpdate?: (id: number, rating: number) => void;
   className?: string;
+  currentPage?: number;
+  pageContext?: 'home' | 'favorites' | 'watchlist';
 }
 
-export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, onRatingUpdate, className }: MovieCardProps) {
+export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, onRatingUpdate, className, currentPage, pageContext = 'home' }: MovieCardProps) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
@@ -44,6 +46,21 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
     }
   };
 
+  // Create the movie URL with page parameter if available
+  const createMovieUrl = () => {
+    if (currentPage) {
+      const params = new URLSearchParams();
+      params.set('page', currentPage.toString());
+      if (pageContext !== 'home') {
+        params.set('from', pageContext);
+      }
+      return `/movie/${movie.id}?${params.toString()}`;
+    }
+    return `/movie/${movie.id}`;
+  };
+
+  const movieUrl = createMovieUrl();
+
   return (
     <div className={cn(
       "group relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl overflow-hidden",
@@ -52,7 +69,7 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
       "animate-fade-in",
       className
     )}>
-      <Link href={`/movie/${movie.id}`} className="block">
+      <Link href={movieUrl} className="block">
         {/* Image Container */}
         <div className="relative aspect-[16/9] overflow-hidden">
           {imageLoading && (

@@ -1,34 +1,59 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Movie } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
+import Pagination from '@/components/Pagination';
 import { MovieGridSkeleton } from '@/components/LoadingSkeleton';
 import { Heart, HeartOff } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 
+interface PaginatedFavorites {
+  movies: Movie[];
+  total: number;
+  totalPages: number;
+  currentPage: number;
+}
+
 export default function FavoritesPage() {
-  const { settings } = useSettings();
+  const { settings, moviesPerPage, isLoaded } = useSettings();
+  const searchParams = useSearchParams();
   const [movies, setMovies] = useState<Movie[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [favoriteChanging, setFavoriteChanging] = useState<number | null>(null);
-  // Removed unused ratingChanging state to resolve lint error
-  // const [ratingChanging, setRatingChanging] = useState<number | null>(null);
+  
+  // Initialize page from URL parameter
+  useEffect(() => {
+    const pageFromUrl = searchParams.get('page');
+    if (pageFromUrl) {
+      const parsedPage = parseInt(pageFromUrl, 10);
+      if (!isNaN(parsedPage) && parsedPage > 0) {
+        setCurrentPage(parsedPage);
+      }
+    }
+  }, [searchParams]);
 
-  const fetchFavorites = async () => {
+  const fetchFavorites = async (page: number) => {
+    if (!isLoaded) return; // Wait for settings to load
+    
     setLoading(true);
     try {
-      const response = await fetch('/api/movies/favorites', {
+      const response = await fetch(`/api/movies/favorites?page=${page}&limit=${moviesPerPage}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache',
         },
       });
-      const data = await response.json();
+      const data: PaginatedFavorites = await response.json();
       
       if (response.ok) {
         setMovies(data.movies || []);
+        setTotalPages(data.totalPages);
+        setCurrentPage(data.currentPage);
       } else {
         console.error('Failed to fetch favorite movies');
       }
@@ -39,9 +64,19 @@ export default function FavoritesPage() {
     }
   };
 
+  // Load initial favorites when settings are loaded
   useEffect(() => {
-    fetchFavorites();
-  }, []);
+    if (isLoaded) {
+      fetchFavorites(currentPage);
+    }
+  }, [isLoaded, moviesPerPage, currentPage]);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchFavorites(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleFavoriteToggle = async (movieId: number) => {
     setFavoriteChanging(movieId);
@@ -168,6 +203,12 @@ export default function FavoritesPage() {
                 {movies.length} {movies.length === 1 ? 'movie' : 'movies'}
               </span>
             </div>
+            
+            {totalPages > 1 && (
+              <p className="text-gray-400 text-sm">
+                Page {currentPage} of {totalPages}
+              </p>
+            )}
           </div>
         )}
 
@@ -189,6 +230,8 @@ export default function FavoritesPage() {
                 onFavoriteToggle={handleFavoriteToggle}
                 onRatingUpdate={handleRatingUpdate}
                 onWatchlistToggle={handleWatchlistToggle}
+                currentPage={currentPage}
+                pageContext="favorites"
                 className={favoriteChanging === movie.id ? 'opacity-70 pointer-events-none' : ''}
               />
             ))}
@@ -219,6 +262,17 @@ export default function FavoritesPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="pt-8 border-t border-gray-800">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+        </div>
+      )}
 
       {/* Tips Section */}
       {!loading && movies.length > 0 && (

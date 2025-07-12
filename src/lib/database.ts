@@ -86,6 +86,31 @@ class MovieDatabase {
     })) as Movie[];
   }
 
+  // Get favorite movies with pagination
+  getFavoriteMoviesPaginated(page: number = 1, limit: number = 20): { movies: Movie[]; total: number; totalPages: number } {
+    const offset = (page - 1) * limit;
+    
+    const movies = this.db.prepare(`
+      SELECT * FROM movies 
+      WHERE isFavourite = 1 
+      ORDER BY title 
+      LIMIT ? OFFSET ?
+    `).all(limit, offset) as unknown as Movie[];
+    
+    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
+    const convertedMovies = movies.map(movie => ({
+      ...movie,
+      isFavourite: Boolean((movie as Movie).isFavourite),
+      isInWatchlist: Boolean((movie as Movie).isInWatchlist)
+    })) as Movie[];
+    
+    const totalResult = this.db.prepare('SELECT COUNT(*) as count FROM movies WHERE isFavourite = 1').get() as { count: number };
+    const total = totalResult.count;
+    const totalPages = Math.ceil(total / limit);
+    
+    return { movies: convertedMovies, total, totalPages };
+  }
+
   // Get watchlist movies
   getWatchlistMovies(): Movie[] {
     const movies = this.db.prepare('SELECT * FROM movies WHERE isInWatchlist = 1 ORDER BY title').all() as unknown as Movie[];
@@ -95,6 +120,31 @@ class MovieDatabase {
       isFavourite: Boolean((movie as Movie).isFavourite),
       isInWatchlist: Boolean((movie as Movie).isInWatchlist)
     })) as Movie[];
+  }
+
+  // Get watchlist movies with pagination
+  getWatchlistMoviesPaginated(page: number = 1, limit: number = 20): { movies: Movie[]; total: number; totalPages: number } {
+    const offset = (page - 1) * limit;
+    
+    const movies = this.db.prepare(`
+      SELECT * FROM movies 
+      WHERE isInWatchlist = 1 
+      ORDER BY title 
+      LIMIT ? OFFSET ?
+    `).all(limit, offset) as unknown as Movie[];
+    
+    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
+    const convertedMovies = movies.map(movie => ({
+      ...movie,
+      isFavourite: Boolean((movie as Movie).isFavourite),
+      isInWatchlist: Boolean((movie as Movie).isInWatchlist)
+    })) as Movie[];
+    
+    const totalResult = this.db.prepare('SELECT COUNT(*) as count FROM movies WHERE isInWatchlist = 1').get() as { count: number };
+    const total = totalResult.count;
+    const totalPages = Math.ceil(total / limit);
+    
+    return { movies: convertedMovies, total, totalPages };
   }
 
   // Get random movie

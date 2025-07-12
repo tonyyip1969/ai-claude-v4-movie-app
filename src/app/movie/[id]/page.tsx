@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Heart, Play, Star, Calendar, Code, Film, Clock } from 'lucide-react';
@@ -25,6 +25,10 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
   const [ratingChanging, setRatingChanging] = useState(false);
   const [imageError, setImageError] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Get the page parameter from URL
+  const returnPage = searchParams.get('page');
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -50,6 +54,31 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
 
     fetchMovie();
   }, [params.id]);
+
+  const handleBackClick = () => {
+    // Get the page parameter from URL
+    const returnPage = searchParams.get('page');
+    const fromPage = searchParams.get('from');
+    
+    // If we have a return page, navigate to the appropriate page with page parameter
+    if (returnPage) {
+      let targetUrl = '/';
+      
+      if (fromPage === 'favorites') {
+        targetUrl = `/favorites?page=${returnPage}`;
+      } else if (fromPage === 'watchlist') {
+        targetUrl = `/watchlist?page=${returnPage}`;
+      } else {
+        // Default to homepage
+        targetUrl = `/?page=${returnPage}`;
+      }
+      
+      router.push(targetUrl);
+    } else {
+      // Fallback to browser back
+      router.back();
+    }
+  };
 
   const handleFavoriteToggle = async () => {
     if (!movie || favoriteChanging) return;
@@ -150,13 +179,13 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
             }
           </p>
         </div>
-        <Link
-          href="/"
+        <button
+          onClick={handleBackClick}
           className="btn-primary flex items-center space-x-2"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Movies</span>
-        </Link>
+        </button>
       </div>
     );
   }
@@ -185,7 +214,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
         {/* Navigation Header */}
         <div className="flex items-center justify-between px-2 py-6">
           <button
-            onClick={() => router.back()}
+            onClick={handleBackClick}
             className="flex items-center space-x-2 text-white/80 hover:text-white transition-colors group bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg px-4 py-2 hover:bg-black/50"
           >
             <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />

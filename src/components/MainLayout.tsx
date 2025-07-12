@@ -16,7 +16,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       "lg:ml-80", // Default margin for expanded sidebar
       isCollapsed && "lg:ml-20" // Reduced margin for collapsed sidebar
     )}>
-      <div className="container mx-auto px-2 py-8 lg:px-2 lg:py-12 max-w-7xl">
+      <div className="container mx-auto px-1 py-8 lg:px-1 lg:py-12 max-w-7xl">
         {children}
       </div>
     </main>
