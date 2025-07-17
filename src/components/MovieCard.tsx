@@ -167,16 +167,7 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
       </div>
 
       {/* Content - Not clickable for navigation */}
-      <div className="p-4 space-y-3">
-        {/* Movie title - clickable for navigation */}
-        <div>
-          <Link href={movieUrl}>
-            <h3 className="font-semibold text-white text-base leading-tight mb-1 line-clamp-1 hover:text-gray-300 transition-colors cursor-pointer">
-              {movie.title}
-            </h3>
-          </Link>
-        </div>
-
+      <div className="p-4">
         {/* Rating and year - Interactive rating, non-clickable year */}
         <div className="flex items-center justify-between">
           <RatingComponent

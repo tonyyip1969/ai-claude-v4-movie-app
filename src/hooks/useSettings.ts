@@ -8,12 +8,14 @@ export interface SettingsData {
   gridColumns: number;
   gridRows: number;
   sidebarCollapsed: boolean;
+  showHeader: boolean; // Add this new property
 }
 
 const defaultSettings: SettingsData = {
-  gridColumns: 5,
-  gridRows: 4,
+  gridColumns: 4,
+  gridRows: 3,
   sidebarCollapsed: false,
+  showHeader: true, // Default to showing header
 };
 
 const STORAGE_KEY = 'movie-app-settings';
@@ -28,6 +30,7 @@ export function useSettings() {
       gridColumns: settingsData.gridColumns.toString(),
       gridRows: settingsData.gridRows.toString(),
       sidebarCollapsed: settingsData.sidebarCollapsed.toString(),
+      showHeader: settingsData.showHeader.toString(), // Serialize the new property
     };
   }, []);
 

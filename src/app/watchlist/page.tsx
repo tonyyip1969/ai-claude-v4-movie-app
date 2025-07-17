@@ -131,34 +131,37 @@ function WatchlistContent() {
 
   return (
     <div className="space-y-8">
-      {/* Header Section */}
-      <div className="text-center space-y-6">
-        <div className="flex items-center justify-center space-x-3 mb-4">
-          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl">
-            <Clock className="w-7 h-7 text-white" />
+      {/* Header Section - Conditionally rendered */}
+      {settings.showHeader && (
+        <div className="text-center space-y-6">
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl">
+              <Clock className="w-7 h-7 text-white" />
+            </div>
+            <h1 className="text-4xl lg:text-5xl font-bold text-white">
+              Watch{' '}
+              <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                List
+              </span>
+            </h1>
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold text-white">
-            Watch{' '}
-            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              List
-            </span>
-          </h1>
+          
+          <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
+            Your personal collection of movies to watch later. Save interesting films here and never lose track of what you want to see next.
+          </p>
         </div>
-        
-        {/* <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
-          Your personal collection of movies to watch later. Save interesting films here and never lose track of what you want to see next.
-        </p> */}
-      </div>
+      )}
 
       {/* Content Section */}
       <div className="space-y-6">
         {/* Stats */}
         {!loading && (
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3 text-sm text-gray-400">
-              <Bookmark className="w-4 h-4" />
-              <span>
-                {movies.length} {movies.length === 1 ? 'movie' : 'movies'} in your watchlist
+            <div className="flex items-center space-x-3">
+              <Clock className="w-6 h-6 from-blue-500 to-cyan-500" />
+              <h2 className="text-2xl font-bold text-white">Watch List</h2>
+              <span className="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-sm">
+                {movies.length} {movies.length === 1 ? 'movie' : 'movies'}
               </span>
             </div>
             

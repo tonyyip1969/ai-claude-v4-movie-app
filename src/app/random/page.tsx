@@ -5,8 +5,10 @@ import { Movie } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
 import { MovieCardSkeleton } from '@/components/LoadingSkeleton';
 import { Shuffle, RefreshCw, Dice6 } from 'lucide-react';
+import { useSettings } from '@/hooks/useSettings';
 
 export default function RandomPage() {
+  const { settings } = useSettings();
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
   const [favoriteChanging, setFavoriteChanging] = useState(false);
@@ -91,47 +93,41 @@ export default function RandomPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header Section */}
-      <div className="text-center space-y-6">
-        <div className="flex items-center justify-center space-x-3 mb-4">
-          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl">
-            <Shuffle className="w-7 h-7 text-white" />
+      {/* Header Section - Conditionally rendered */}
+      {settings.showHeader && (
+        <div className="text-center space-y-6">
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl">
+              <Shuffle className="w-7 h-7 text-white" />
+            </div>
+            <h1 className="text-4xl lg:text-5xl font-bold text-white">
+              Random{' '}
+              <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                Discovery
+              </span>
+            </h1>
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold text-white">
-            Random{' '}
-            <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
-              Discovery
-            </span>
-          </h1>
+          
+          <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
+            Can&apos;t decide what to watch? Let us surprise you! Discover new movies through our random selection feature and find your next favorite film.
+          </p>
         </div>
-        
-        {/* <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
-          Can&apos;t decide what to watch? Let us surprise you! Discover new movies through our random selection feature and find your next favorite film.
-        </p> */}
+      )}
 
-        {/* Random Button */}
-        <div className="flex justify-center">
-          <button
-            onClick={handleNewRandom}
-            disabled={loading}
-            className="btn-primary flex items-center space-x-3 text-lg px-8 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <RefreshCw className={`w-6 h-6 ${loading ? 'animate-spin' : ''}`} />
-            <span>{loading ? 'Getting Random Movie...' : 'Get Another Random Movie'}</span>
-          </button>
-        </div>
+      {/* Random Button - Always visible */}
+      <div className="flex justify-center">
+        <button
+          onClick={handleNewRandom}
+          disabled={loading}
+          className="btn-primary flex items-center space-x-3 text-lg px-8 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <RefreshCw className={`w-6 h-6 ${loading ? 'animate-spin' : ''}`} />
+          <span>{loading ? 'Getting Random Movie...' : 'Get Another Random Movie'}</span>
+        </button>
       </div>
 
       {/* Content Section */}
       <div className="space-y-6">
-        {/* Section Header */}
-        {/* {!loading && movie && (
-          <div className="flex items-center justify-center space-x-3">
-            <Dice6 className="w-6 h-6 text-purple-400" />
-            <h2 className="text-2xl font-bold text-white">Your Random Pick</h2>
-          </div>
-        )} */}
-
         {/* Loading State */}
         {loading && (
           <div className="w-full">

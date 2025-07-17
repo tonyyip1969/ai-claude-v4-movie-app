@@ -238,32 +238,34 @@ function HomeContent() {
 
   return (
     <div className="space-y-8">
-      {/* Header Section */}
-      <div className="text-center space-y-6">
-        <div className="flex items-center justify-center space-x-3 mb-4">
-          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl">
-            <Film className="w-7 h-7 text-white" />
+      {/* Header Section - Conditionally rendered */}
+      {settings.showHeader && (
+        <div className="text-center space-y-6">
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl">
+              <Film className="w-7 h-7 text-white" />
+            </div>
+            <h1 className="text-4xl lg:text-5xl font-bold text-white">
+              Discover Amazing{' '}
+              <span className="text-gradient">Movies</span>
+            </h1>
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold text-white">
-            Discover Amazing{' '}
-            <span className="text-gradient">Movies</span>
-          </h1>
+          
+          <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
+            Explore our vast collection of movies with stunning visuals and immersive experiences. 
+            Find your next favorite film in our carefully curated selection.
+          </p>
         </div>
-        
-        {/* <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
-          Explore our vast collection of movies with stunning visuals and immersive experiences. 
-          Find your next favorite film in our carefully curated selection.
-        </p> */}
+      )}
 
-        {/* Search Bar */}
-        <div className="max-w-2xl mx-auto">
-          <SearchBar
-            onResults={handleSearchResults}
-            onClear={handleSearchClear}
-            placeholder="Search for movie code, title, or description..."
-            className="w-full"
-          />
-        </div>
+      {/* Search Bar - Always visible */}
+      <div className="max-w-2xl mx-auto">
+        <SearchBar
+          onResults={handleSearchResults}
+          onClear={handleSearchClear}
+          placeholder="Search for movie code, title, or description..."
+          className="w-full"
+        />
       </div>
 
       {/* Content Section */}

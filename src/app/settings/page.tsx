@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, RotateCcw, Grid, Sidebar } from 'lucide-react';
+import { Settings as SettingsIcon, Save, RotateCcw, Grid, Sidebar, Eye, EyeOff } from 'lucide-react';
 import { useSettings, SettingsData } from '@/hooks/useSettings';
 
 export default function SettingsPage() {
@@ -73,6 +73,60 @@ export default function SettingsPage() {
 
       {/* Settings Form */}
       <div className="max-w-2xl mx-auto space-y-8">
+        {/* Display Preferences Setting */}
+        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 space-y-4">
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-center w-10 h-10 bg-emerald-500/20 rounded-lg">
+              <Eye className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-white">Display Preferences</h3>
+              <p className="text-gray-400 text-sm">Configure page header and visual elements</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <label className="text-white font-medium">Show Page Headers</label>
+                <p className="text-gray-400 text-sm">Display decorative headers with titles and descriptions on pages</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={localSettings.showHeader}
+                  onChange={(e) => updateLocalSetting('showHeader', e.target.checked)}
+                />
+                <div className={`w-11 h-6 rounded-full transition-colors ${
+                  localSettings.showHeader ? 'bg-emerald-600' : 'bg-gray-600'
+                }`}>
+                  <div className={`w-5 h-5 bg-white rounded-full shadow-lg transform transition-transform ${
+                    localSettings.showHeader ? 'translate-x-5' : 'translate-x-0.5'
+                  } mt-0.5`}></div>
+                </div>
+              </label>
+            </div>
+
+            <div className="bg-gray-900/50 rounded-lg p-4">
+              <div className="flex items-center space-x-2 mb-2">
+                {localSettings.showHeader ? (
+                  <Eye className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <EyeOff className="w-4 h-4 text-gray-500" />
+                )}
+                <p className="text-sm text-gray-400">
+                  Status: Page headers are {localSettings.showHeader ? 'visible' : 'hidden'}
+                </p>
+              </div>
+              <p className="text-xs text-gray-500">
+                When disabled, pages will start directly with content, providing a more compact view. 
+                This affects pages like Favorites, Watchlist, and other sections with decorative headers.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Grid Layout Setting */}
         <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 space-y-4">
           <div className="flex items-center space-x-3">
@@ -243,7 +297,7 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-white">About Settings</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
-                These settings control how movies are displayed throughout the app and the sidebar behavior. 
+                These settings control how movies are displayed throughout the app, page headers visibility, and sidebar behavior. 
                 Changes are saved locally in your browser and will persist between sessions. 
                 The number of movies per page is automatically calculated based on your grid layout (rows × columns).
               </p>

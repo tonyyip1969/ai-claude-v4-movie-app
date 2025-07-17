@@ -172,24 +172,26 @@ function FavoritesContent() {
 
   return (
     <div className="space-y-8">
-      {/* Header Section */}
-      <div className="text-center space-y-6">
-        <div className="flex items-center justify-center space-x-3 mb-4">
-          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl">
-            <Heart className="w-7 h-7 text-white fill-white" />
+      {/* Header Section - Conditionally rendered */}
+      {settings.showHeader && (
+        <div className="text-center space-y-6">
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl">
+              <Heart className="w-7 h-7 text-white fill-white" />
+            </div>
+            <h1 className="text-4xl lg:text-5xl font-bold text-white">
+              Your&nbsp;
+              <span className="bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
+                Favorites
+              </span>
+            </h1>
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold text-white">
-            Your&nbsp;
-            <span className="bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
-              Favorites
-            </span>
-          </h1>
+          
+          <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
+            Your personally curated collection of favorite movies. All the films you&apos;ve marked as favorites are here for easy access.
+          </p>
         </div>
-        
-        {/* <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
-          Your personally curated collection of favorite movies. All the films you&apos;ve marked as favorites are here for easy access.
-        </p> */}
-      </div>
+      )}
 
       {/* Content Section */}
       <div className="space-y-6">
