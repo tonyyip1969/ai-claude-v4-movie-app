@@ -6,12 +6,22 @@ import MovieCard from '@/components/MovieCard';
 import { MovieCardSkeleton } from '@/components/LoadingSkeleton';
 import { Shuffle, RefreshCw, Dice6 } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
+import { useMovieActions } from '@/hooks/useMovieActions';
 
 export default function RandomPage() {
   const { settings } = useSettings();
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
-  const [favoriteChanging, setFavoriteChanging] = useState(false);
+
+  // Use centralized movie actions hook
+  const movieActions = useMovieActions({
+    onFavoriteUpdate: (movieId, isFavourite) => {
+      setMovie(prev => prev ? { ...prev, isFavourite } : null);
+    },
+    onWatchlistUpdate: (movieId, isInWatchlist) => {
+      setMovie(prev => prev ? { ...prev, isInWatchlist } : null);
+    }
+  });
 
   const fetchRandomMovie = async () => {
     setLoading(true);
@@ -42,49 +52,11 @@ export default function RandomPage() {
   }, []);
 
   const handleFavoriteToggle = async (movieId: number) => {
-    setFavoriteChanging(true);
-    
-    try {
-      const response = await fetch(`/api/movies/${movieId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'toggleFavorite' }),
-      });
-
-      if (response.ok) {
-        const { isFavourite } = await response.json();
-        setMovie(prev => prev ? { ...prev, isFavourite } : null);
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-    } finally {
-      setFavoriteChanging(false);
-    }
+    await movieActions.toggleFavorite(movieId);
   };
 
   const handleWatchlistToggle = async (movieId: number) => {
-    setFavoriteChanging(true); // Reuse the same loading state
-    
-    try {
-      const response = await fetch(`/api/movies/${movieId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'toggleWatchlist' }),
-      });
-
-      if (response.ok) {
-        const { isInWatchlist } = await response.json();
-        setMovie(prev => prev ? { ...prev, isInWatchlist } : null);
-      }
-    } catch (error) {
-      console.error('Error toggling watchlist:', error);
-    } finally {
-      setFavoriteChanging(false);
-    }
+    await movieActions.toggleWatchlist(movieId);
   };
 
   const handleNewRandom = () => {
@@ -142,7 +114,7 @@ export default function RandomPage() {
               movie={movie}
               onFavoriteToggle={handleFavoriteToggle}
               onWatchlistToggle={handleWatchlistToggle}
-              className={favoriteChanging ? 'opacity-70 pointer-events-none' : ''}
+              className={movieActions.isFavoriteChanging(movie.id) || movieActions.isWatchlistChanging(movie.id) ? 'opacity-70 pointer-events-none' : ''}
             />
           </div>
         )}

@@ -8,6 +8,7 @@ import Pagination from '@/components/Pagination';
 import { MovieCardSkeleton } from '@/components/LoadingSkeleton';
 import { Clock, Bookmark, Play } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
+import { useMovieActions, createMovieStateUpdaters } from '@/hooks/useMovieActions';
 
 interface PaginatedWatchlist {
   movies: Movie[];
@@ -23,7 +24,12 @@ function WatchlistContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [watchlistChanging, setWatchlistChanging] = useState<Record<number, boolean>>({});
+
+  // Use centralized movie actions hook
+  const movieStateUpdaters = createMovieStateUpdaters(setMovies, {
+    removeOnWatchlistRemove: true // Remove from watchlist when removed from watchlist
+  });
+  const movieActions = useMovieActions(movieStateUpdaters);
 
   // Initialize page from URL parameter
   useEffect(() => {
@@ -79,54 +85,11 @@ function WatchlistContent() {
   };
 
   const handleWatchlistToggle = async (movieId: number) => {
-    setWatchlistChanging(prev => ({ ...prev, [movieId]: true }));
-    
-    try {
-      const response = await fetch(`/api/movies/${movieId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'toggleWatchlist' }),
-      });
-
-      if (response.ok) {
-        const { isInWatchlist } = await response.json();
-        if (!isInWatchlist) {
-          // Remove from watchlist locally
-          setMovies(prev => prev.filter(movie => movie.id !== movieId));
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling watchlist:', error);
-    } finally {
-      setWatchlistChanging(prev => ({ ...prev, [movieId]: false }));
-    }
+    await movieActions.toggleWatchlist(movieId);
   };
 
   const handleFavoriteToggle = async (movieId: number) => {
-    try {
-      const response = await fetch(`/api/movies/${movieId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'toggleFavorite' }),
-      });
-
-      if (response.ok) {
-        const { isFavourite } = await response.json();
-        setMovies(prev => 
-          prev.map(movie => 
-            movie.id === movieId 
-              ? { ...movie, isFavourite }
-              : movie
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-    }
+    await movieActions.toggleFavorite(movieId);
   };
 
   return (
@@ -203,7 +166,7 @@ function WatchlistContent() {
                 onWatchlistToggle={handleWatchlistToggle}
                 currentPage={currentPage}
                 pageContext="watchlist"
-                className={watchlistChanging[movie.id] ? 'opacity-70 pointer-events-none' : ''}
+                className={movieActions.isWatchlistChanging(movie.id) ? 'opacity-70 pointer-events-none' : ''}
               />
             ))}
           </div>

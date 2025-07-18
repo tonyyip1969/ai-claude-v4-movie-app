@@ -10,6 +10,7 @@ import { MovieGridSkeleton, SearchSkeleton } from '@/components/LoadingSkeleton'
 import { Film, Search as SearchIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/hooks/useSettings';
+import { useMovieActions, createMovieStateUpdaters } from '@/hooks/useMovieActions';
 
 function HomeContent() {
   const { settings, moviesPerPage, isLoaded } = useSettings();
@@ -20,8 +21,12 @@ function HomeContent() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [searchMode, setSearchMode] = useState(false);
-  const [favoriteChanging, setFavoriteChanging] = useState<number | null>(null);
-  const [ratingChanging, setRatingChanging] = useState<number | null>(null);
+
+  // Use centralized movie actions hook
+  const movieStateUpdaters = createMovieStateUpdaters(setMovies, {
+    updateSearchResults: { setSearchResults, searchMode }
+  });
+  const movieActions = useMovieActions(movieStateUpdaters);
 
   // Initialize page from URL parameter
   useEffect(() => {
@@ -98,139 +103,17 @@ function HomeContent() {
 
   // Handle favorite toggle
   const handleFavoriteToggle = async (movieId: number) => {
-    setFavoriteChanging(movieId);
-    try {
-      const response = await fetch(`/api/movies/${movieId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'toggleFavorite' }),
-      });
-
-      if (response.ok) {
-        const { isFavourite } = await response.json();
-        console.log('Favorite toggled successfully:', movieId, 'New status:', isFavourite);
-        // Update the movie in current state
-        if (searchMode) {
-          setSearchResults(prev => 
-            prev.map(movie => 
-              movie.id === movieId 
-                ? { ...movie, isFavourite } 
-                : movie
-            )
-          );
-        } else {
-          setMovies(prev => 
-            prev.map(movie => 
-              movie.id === movieId 
-                ? { ...movie, isFavourite } 
-                : movie
-            )
-          );
-        }
-      } else {
-        const errorData = await response.json();
-        console.error('Failed to toggle favorite:', errorData);
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-    } finally {
-      setFavoriteChanging(null);
-    }
+    await movieActions.toggleFavorite(movieId);
   };
 
   // Handle rating update
   const handleRatingUpdate = async (movieId: number, rating: number) => {
-    setRatingChanging(movieId);
-    
-    try {
-      const response = await fetch(`/api/movies/${movieId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'updateRating', rating }),
-      });
-
-      if (response.ok) {
-        await response.json();
-        console.log('Rating updated successfully:', movieId, 'New rating:', rating);
-        // Update the movie in current state
-        if (searchMode) {
-          setSearchResults(prev => 
-            prev.map(movie => 
-              movie.id === movieId 
-                ? { ...movie, rating } 
-                : movie
-            )
-          );
-        } else {
-          setMovies(prev => 
-            prev.map(movie => 
-              movie.id === movieId 
-                ? { ...movie, rating } 
-                : movie
-            )
-          );
-        }
-      } else {
-        const errorData = await response.json();
-        console.error('Failed to update rating:', errorData);
-      }
-    } catch (error) {
-      console.error('Error updating rating:', error);
-    } finally {
-      setRatingChanging(null);
-    }
+    await movieActions.updateRating(movieId, rating);
   };
 
   // Handle watchlist toggle
   const handleWatchlistToggle = async (movieId: number) => {
-    setFavoriteChanging(movieId); // Reuse the same loading state
-    
-    try {
-      const response = await fetch(`/api/movies/${movieId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'toggleWatchlist' }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const { isInWatchlist } = data;
-        
-        console.log('Watchlist toggled successfully:', movieId, 'New status:', isInWatchlist);
-        
-        // Update the movie in current state
-        if (searchMode) {
-          setSearchResults(prev => 
-            prev.map(movie => 
-              movie.id === movieId 
-                ? { ...movie, isInWatchlist } 
-                : movie
-            )
-          );
-        } else {
-          setMovies(prev => 
-            prev.map(movie => 
-              movie.id === movieId 
-                ? { ...movie, isInWatchlist } 
-                : movie
-            )
-          );
-        }
-      } else {
-        const errorData = await response.json();
-        console.error('Failed to toggle watchlist:', errorData);
-      }
-    } catch (error) {
-      console.error('Error toggling watchlist:', error);
-    } finally {
-      setFavoriteChanging(null);
-    }
+    await movieActions.toggleWatchlist(movieId);
   };
 
   const displayMovies = searchMode ? searchResults : movies;
@@ -316,8 +199,8 @@ function HomeContent() {
                 onWatchlistToggle={handleWatchlistToggle}
                 currentPage={!searchMode ? currentPage : undefined}
                 className={cn(
-                  favoriteChanging === movie.id && 'opacity-70 pointer-events-none',
-                  ratingChanging === movie.id && 'opacity-70'
+                  (movieActions.isFavoriteChanging(movie.id) || movieActions.isWatchlistChanging(movie.id)) && 'opacity-70 pointer-events-none',
+                  movieActions.isRatingChanging(movie.id) && 'opacity-70'
                 )}
               />
             ))}

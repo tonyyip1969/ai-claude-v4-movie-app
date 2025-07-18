@@ -9,6 +9,7 @@ import VideoModal from '@/components/VideoModal';
 import RatingComponent from '@/components/RatingComponent';
 import { MovieDetailSkeleton } from '@/components/LoadingSkeleton';
 import { cn, formatDate } from '@/lib/utils';
+import { useMovieActions } from '@/hooks/useMovieActions';
 
 interface MovieDetailPageProps {
   params: { id: string };
@@ -19,12 +20,22 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showVideo, setShowVideo] = useState(false);
-  const [favoriteChanging, setFavoriteChanging] = useState(false);
-  const [watchlistChanging, setWatchlistChanging] = useState(false);
-  const [ratingChanging, setRatingChanging] = useState(false);
   const [imageError, setImageError] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Use centralized movie actions hook
+  const movieActions = useMovieActions({
+    onFavoriteUpdate: (movieId, isFavourite) => {
+      setMovie(prev => prev ? { ...prev, isFavourite } : null);
+    },
+    onWatchlistUpdate: (movieId, isInWatchlist) => {
+      setMovie(prev => prev ? { ...prev, isInWatchlist } : null);
+    },
+    onRatingUpdate: (movieId, rating) => {
+      setMovie(prev => prev ? { ...prev, rating } : null);
+    }
+  });
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -77,81 +88,18 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
   };
 
   const handleFavoriteToggle = async () => {
-    if (!movie || favoriteChanging) return;
-    
-    setFavoriteChanging(true);
-    try {
-      const response = await fetch(`/api/movies/${movie.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'toggleFavorite' }),
-      });
-
-      if (response.ok) {
-        const { isFavourite } = await response.json();
-        setMovie(prev => prev ? { ...prev, isFavourite } : null);
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-    } finally {
-      setFavoriteChanging(false);
-    }
+    if (!movie) return;
+    await movieActions.toggleFavorite(movie.id);
   };
 
   const handleWatchlistToggle = async () => {
-    if (!movie || watchlistChanging) return;
-    
-    setWatchlistChanging(true);
-    try {
-      const response = await fetch(`/api/movies/${movie.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'toggleWatchlist' }),
-      });
-
-      if (response.ok) {
-        const { isInWatchlist } = await response.json();
-        setMovie(prev => prev ? { ...prev, isInWatchlist } : null);
-      }
-    } catch (error) {
-      console.error('Error toggling watchlist:', error);
-    } finally {
-      setWatchlistChanging(false);
-    }
+    if (!movie) return;
+    await movieActions.toggleWatchlist(movie.id);
   };
 
   const handleRatingChange = async (newRating: number) => {
-    if (!movie || ratingChanging) return;
-    
-    setRatingChanging(true);
-    try {
-      const response = await fetch(`/api/movies/${movie.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          action: 'updateRating',
-          rating: newRating 
-        }),
-      });
-
-      if (response.ok) {
-        const { rating } = await response.json();
-        setMovie(prev => prev ? { ...prev, rating } : null);
-      } else {
-        const errorData = await response.json();
-        console.error('Error updating rating:', errorData.error);
-      }
-    } catch (error) {
-      console.error('Error updating rating:', error);
-    } finally {
-      setRatingChanging(false);
-    }
+    if (!movie) return;
+    await movieActions.updateRating(movie.id, newRating);
   };
 
   if (loading) {
@@ -255,13 +203,13 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={handleFavoriteToggle}
-                  disabled={favoriteChanging}
+                  disabled={movieActions.isFavoriteChanging(movie.id)}
                   className={cn(
                     "flex items-center justify-center space-x-2 border-2 font-semibold px-8 py-4 rounded-lg transition-all",
                     movie.isFavourite
                       ? "bg-red-600/20 border-red-500 text-red-400 hover:bg-red-600/30"
                       : "border-white/30 text-white hover:bg-white/10",
-                    favoriteChanging && "opacity-50 cursor-not-allowed"
+                    movieActions.isFavoriteChanging(movie.id) && "opacity-50 cursor-not-allowed"
                   )}
                 >
                   <Heart className={cn(
@@ -269,7 +217,7 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
                     movie.isFavourite ? "fill-red-400 text-red-400" : ""
                   )} />
                   <span>
-                    {favoriteChanging 
+                    {movieActions.isFavoriteChanging(movie.id)
                       ? 'Updating...' 
                       : movie.isFavourite 
                         ? 'Remove from Favorites' 
@@ -280,13 +228,13 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
 
                 <button
                   onClick={handleWatchlistToggle}
-                  disabled={watchlistChanging}
+                  disabled={movieActions.isWatchlistChanging(movie.id)}
                   className={cn(
                     "flex items-center justify-center space-x-2 border-2 font-semibold px-8 py-4 rounded-lg transition-all",
                     movie.isInWatchlist
                       ? "bg-blue-600/20 border-blue-500 text-blue-400 hover:bg-blue-600/30"
                       : "border-white/30 text-white hover:bg-white/10",
-                    watchlistChanging && "opacity-50 cursor-not-allowed"
+                    movieActions.isWatchlistChanging(movie.id) && "opacity-50 cursor-not-allowed"
                   )}
                 >
                   <Clock className={cn(
@@ -294,7 +242,7 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
                     movie.isInWatchlist ? "fill-blue-400 text-blue-400" : ""
                   )} />
                   <span>
-                    {watchlistChanging 
+                    {movieActions.isWatchlistChanging(movie.id)
                       ? 'Updating...' 
                       : movie.isInWatchlist 
                         ? 'Remove from Watchlist' 
@@ -314,9 +262,9 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
                   onRatingChange={handleRatingChange}
                   size="lg"
                   showValue={true}
-                  className={ratingChanging ? "opacity-50" : ""}
+                  className={movieActions.isRatingChanging(movie.id) ? "opacity-50" : ""}
                 />
-                {ratingChanging && (
+                {movieActions.isRatingChanging(movie.id) && (
                   <p className="text-sm text-gray-400">Updating rating...</p>
                 )}
                 <p className="text-xs text-gray-400">Click the stars to rate this movie</p>

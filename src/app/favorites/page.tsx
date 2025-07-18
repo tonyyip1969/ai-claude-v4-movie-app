@@ -8,6 +8,7 @@ import Pagination from '@/components/Pagination';
 import { MovieGridSkeleton } from '@/components/LoadingSkeleton';
 import { Heart, HeartOff } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
+import { useMovieActions, createMovieStateUpdaters } from '@/hooks/useMovieActions';
 
 interface PaginatedFavorites {
   movies: Movie[];
@@ -23,7 +24,12 @@ function FavoritesContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [favoriteChanging, setFavoriteChanging] = useState<number | null>(null);
+
+  // Use centralized movie actions hook
+  const movieStateUpdaters = createMovieStateUpdaters(setMovies, {
+    removeOnUnfavorite: true // Remove from favorites list when unfavorited
+  });
+  const movieActions = useMovieActions(movieStateUpdaters);
   
   // Initialize page from URL parameter
   useEffect(() => {
@@ -79,95 +85,17 @@ function FavoritesContent() {
   };
 
   const handleFavoriteToggle = async (movieId: number) => {
-    setFavoriteChanging(movieId);
-    
-    try {
-      const response = await fetch(`/api/movies/${movieId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'toggleFavorite' }),
-      });
-
-      if (response.ok) {
-        // Remove the movie from favorites list since it's no longer a favorite
-        setMovies(prev => prev.filter(movie => movie.id !== movieId));
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-    } finally {
-      setFavoriteChanging(null);
-    }
+    await movieActions.toggleFavorite(movieId);
   };
 
   // Handle rating update
   const handleRatingUpdate = async (movieId: number, rating: number) => {
-    // setRatingChanging(movieId); // Removed unused state
-    
-    try {
-      const response = await fetch(`/api/movies/${movieId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'updateRating', rating }),
-      });
-
-      if (response.ok) {
-        // Update the movie rating in current state
-        setMovies(prev => 
-          prev.map(movie => 
-            movie.id === movieId 
-              ? { ...movie, rating } 
-              : movie
-          )
-        );
-      } else {
-        const errorData = await response.json();
-        console.error('Failed to update rating:', errorData);
-      }
-    } catch (error) {
-      console.error('Error updating rating:', error);
-    } finally {
-      // setRatingChanging(null); // Removed unused state
-    }
+    await movieActions.updateRating(movieId, rating);
   };
 
   // Handle watchlist toggle
   const handleWatchlistToggle = async (movieId: number) => {
-    setFavoriteChanging(movieId); // Reuse the same loading state
-    
-    try {
-      const response = await fetch(`/api/movies/${movieId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'toggleWatchlist' }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const { isInWatchlist } = data;
-        
-        // Update the movie watchlist status in current state
-        setMovies(prev => 
-          prev.map(movie => 
-            movie.id === movieId 
-              ? { ...movie, isInWatchlist } 
-              : movie
-          )
-        );
-      } else {
-        const errorData = await response.json();
-        console.error('Failed to toggle watchlist:', errorData);
-      }
-    } catch (error) {
-      console.error('Error toggling watchlist:', error);
-    } finally {
-      setFavoriteChanging(null);
-    }
+    await movieActions.toggleWatchlist(movieId);
   };
 
   return (
@@ -234,7 +162,7 @@ function FavoritesContent() {
                 onWatchlistToggle={handleWatchlistToggle}
                 currentPage={currentPage}
                 pageContext="favorites"
-                className={favoriteChanging === movie.id ? 'opacity-70 pointer-events-none' : ''}
+                className={movieActions.isFavoriteChanging(movie.id) ? 'opacity-70 pointer-events-none' : ''}
               />
             ))}
           </div>
