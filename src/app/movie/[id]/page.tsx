@@ -9,7 +9,7 @@ import VideoModal from '@/components/VideoModal';
 import RatingComponent from '@/components/RatingComponent';
 import { MovieDetailSkeleton } from '@/components/LoadingSkeleton';
 import { cn, formatDate } from '@/lib/utils';
-import { useMovieActions } from '@/hooks/useMovieActions';
+import { useToggleFavorite, useToggleWatchlist, useUpdateRating } from '@/hooks/use-movie-mutations';
 
 interface MovieDetailPageProps {
   params: { id: string };
@@ -24,18 +24,10 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Use centralized movie actions hook
-  const movieActions = useMovieActions({
-    onFavoriteUpdate: (movieId, isFavourite) => {
-      setMovie(prev => prev ? { ...prev, isFavourite } : null);
-    },
-    onWatchlistUpdate: (movieId, isInWatchlist) => {
-      setMovie(prev => prev ? { ...prev, isInWatchlist } : null);
-    },
-    onRatingUpdate: (movieId, rating) => {
-      setMovie(prev => prev ? { ...prev, rating } : null);
-    }
-  });
+  // Use TanStack Query mutations for movie actions
+  const favoriteMutation = useToggleFavorite();
+  const watchlistMutation = useToggleWatchlist();
+  const ratingMutation = useUpdateRating();
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -89,17 +81,32 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
 
   const handleFavoriteToggle = async () => {
     if (!movie) return;
-    await movieActions.toggleFavorite(movie.id);
+    favoriteMutation.mutate({ 
+      movieId: movie.id, 
+      currentStatus: movie.isFavourite 
+    });
+    // Optimistically update local state
+    setMovie(prev => prev ? { ...prev, isFavourite: !prev.isFavourite } : null);
   };
 
   const handleWatchlistToggle = async () => {
     if (!movie) return;
-    await movieActions.toggleWatchlist(movie.id);
+    watchlistMutation.mutate({ 
+      movieId: movie.id, 
+      currentStatus: movie.isInWatchlist 
+    });
+    // Optimistically update local state
+    setMovie(prev => prev ? { ...prev, isInWatchlist: !prev.isInWatchlist } : null);
   };
 
   const handleRatingChange = async (newRating: number) => {
     if (!movie) return;
-    await movieActions.updateRating(movie.id, newRating);
+    ratingMutation.mutate({ 
+      movieId: movie.id, 
+      rating: newRating 
+    });
+    // Optimistically update local state
+    setMovie(prev => prev ? { ...prev, rating: newRating } : null);
   };
 
   if (loading) {
@@ -203,13 +210,13 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={handleFavoriteToggle}
-                  disabled={movieActions.isFavoriteChanging(movie.id)}
+                  disabled={favoriteMutation.isPending}
                   className={cn(
                     "flex items-center justify-center space-x-2 border-2 font-semibold px-8 py-4 rounded-lg transition-all",
                     movie.isFavourite
                       ? "bg-red-600/20 border-red-500 text-red-400 hover:bg-red-600/30"
                       : "border-white/30 text-white hover:bg-white/10",
-                    movieActions.isFavoriteChanging(movie.id) && "opacity-50 cursor-not-allowed"
+                    favoriteMutation.isPending && "opacity-50 cursor-not-allowed"
                   )}
                 >
                   <Heart className={cn(
@@ -217,7 +224,7 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
                     movie.isFavourite ? "fill-red-400 text-red-400" : ""
                   )} />
                   <span>
-                    {movieActions.isFavoriteChanging(movie.id)
+                    {favoriteMutation.isPending
                       ? 'Updating...' 
                       : movie.isFavourite 
                         ? 'Remove from Favorites' 
@@ -228,13 +235,13 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
 
                 <button
                   onClick={handleWatchlistToggle}
-                  disabled={movieActions.isWatchlistChanging(movie.id)}
+                  disabled={watchlistMutation.isPending}
                   className={cn(
                     "flex items-center justify-center space-x-2 border-2 font-semibold px-8 py-4 rounded-lg transition-all",
                     movie.isInWatchlist
                       ? "bg-blue-600/20 border-blue-500 text-blue-400 hover:bg-blue-600/30"
                       : "border-white/30 text-white hover:bg-white/10",
-                    movieActions.isWatchlistChanging(movie.id) && "opacity-50 cursor-not-allowed"
+                    watchlistMutation.isPending && "opacity-50 cursor-not-allowed"
                   )}
                 >
                   <Clock className={cn(
@@ -242,7 +249,7 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
                     movie.isInWatchlist ? "fill-blue-400 text-blue-400" : ""
                   )} />
                   <span>
-                    {movieActions.isWatchlistChanging(movie.id)
+                    {watchlistMutation.isPending
                       ? 'Updating...' 
                       : movie.isInWatchlist 
                         ? 'Remove from Watchlist' 
@@ -262,9 +269,9 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
                   onRatingChange={handleRatingChange}
                   size="lg"
                   showValue={true}
-                  className={movieActions.isRatingChanging(movie.id) ? "opacity-50" : ""}
+                  className={ratingMutation.isPending ? "opacity-50" : ""}
                 />
-                {movieActions.isRatingChanging(movie.id) && (
+                {ratingMutation.isPending && (
                   <p className="text-sm text-gray-400">Updating rating...</p>
                 )}
                 <p className="text-xs text-gray-400">Click the stars to rate this movie</p>

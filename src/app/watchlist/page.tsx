@@ -2,35 +2,19 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Movie } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
 import Pagination from '@/components/Pagination';
-import { MovieCardSkeleton } from '@/components/LoadingSkeleton';
-import { Clock, Bookmark, Play } from 'lucide-react';
+import { MovieGridSkeleton } from '@/components/LoadingSkeleton';
+import { Clock, X } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
-import { useMovieActions, createMovieStateUpdaters } from '@/hooks/useMovieActions';
-
-interface PaginatedWatchlist {
-  movies: Movie[];
-  total: number;
-  totalPages: number;
-  currentPage: number;
-}
+import { useWatchlistMovies } from '@/hooks/use-movie-queries';
+import { cn } from '@/lib/utils';
 
 function WatchlistContent() {
   const { settings, moviesPerPage, isLoaded } = useSettings();
   const searchParams = useSearchParams();
-  const [movies, setMovies] = useState<Movie[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-
-  // Use centralized movie actions hook
-  const movieStateUpdaters = createMovieStateUpdaters(setMovies, {
-    removeOnWatchlistRemove: true // Remove from watchlist when removed from watchlist
-  });
-  const movieActions = useMovieActions(movieStateUpdaters);
-
+  
   // Initialize page from URL parameter
   useEffect(() => {
     const pageFromUrl = searchParams.get('page');
@@ -42,55 +26,32 @@ function WatchlistContent() {
     }
   }, [searchParams]);
 
-  const fetchWatchlistMovies = async (page: number) => {
-    if (!isLoaded) return; // Wait for settings to load
-    
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/movies/watchlist?page=${page}&limit=${moviesPerPage}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-        },
-      });
-      const data: PaginatedWatchlist = await response.json();
-      
-      if (response.ok) {
-        setMovies(data.movies);
-        setTotalPages(data.totalPages);
-        setCurrentPage(data.currentPage);
-      } else {
-        console.error('Failed to fetch watchlist movies');
-      }
-    } catch (error) {
-      console.error('Error fetching watchlist movies:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use enhanced query hook for watchlist
+  const {
+    data: watchlistData,
+    isLoading,
+    error,
+  } = useWatchlistMovies({
+    page: currentPage,
+    limit: moviesPerPage,
+  });
 
-  // Load initial watchlist when settings are loaded
-  useEffect(() => {
-    if (isLoaded) {
-      fetchWatchlistMovies(currentPage);
-    }
-  }, [isLoaded, moviesPerPage, currentPage]);
-
-  // Handle page change
+  // Handle page changes
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    fetchWatchlistMovies(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Update URL
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', page.toString());
+    window.history.pushState(null, '', url.toString());
   };
 
-  const handleWatchlistToggle = async (movieId: number) => {
-    await movieActions.toggleWatchlist(movieId);
-  };
+  if (!isLoaded) {
+    return <MovieGridSkeleton />;
+  }
 
-  const handleFavoriteToggle = async (movieId: number) => {
-    await movieActions.toggleFavorite(movieId);
-  };
+  const movies = watchlistData?.movies || [];
+  const totalPages = watchlistData?.totalPages || 1;
+  const total = watchlistData?.total || 0;
 
   return (
     <div className="space-y-8">
@@ -115,91 +76,88 @@ function WatchlistContent() {
         </div>
       )}
 
-      {/* Content Section */}
-      <div className="space-y-6">
-        {/* Stats */}
-        {!loading && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Clock className="w-6 h-6 from-blue-500 to-cyan-500" />
-              <h2 className="text-2xl font-bold text-white">Watch List</h2>
-              <span className="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-sm">
-                {movies.length} {movies.length === 1 ? 'movie' : 'movies'}
-              </span>
-            </div>
-            
-            {totalPages > 1 && (
-              <p className="text-gray-400 text-sm">
-                Page {currentPage} of {totalPages}
-              </p>
-            )}
+      {/* Stats */}
+      {!isLoading && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Clock className="w-6 h-6 from-blue-500 to-cyan-500" />
+            <h2 className="text-2xl font-bold text-white">Watch List</h2>
+            <span className="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-sm">
+              {total} {total === 1 ? 'movie' : 'movies'}
+            </span>
           </div>
-        )}
+          
+          {totalPages > 1 && (
+            <p className="text-gray-400 text-sm">
+              Page {currentPage} of {totalPages}
+            </p>
+          )}
+        </div>
+      )}
 
-        {/* Loading State */}
-        {loading && (
-          <div 
-            className="grid gap-6"
-            style={{
-              gridTemplateColumns: `repeat(${settings.gridColumns}, 1fr)`
-            }}
+      {/* Loading State */}
+      {isLoading && <MovieGridSkeleton />}
+
+      {/* Movies Grid */}
+      {!isLoading && movies.length > 0 && (
+        <div 
+          className={cn(
+            "grid gap-6 transition-all duration-300",
+            `grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-${settings.gridColumns} xl:grid-cols-${Math.min(settings.gridColumns + 1, 6)}`
+          )}
+        >
+          {movies.map((movie) => (
+            <MovieCard
+              key={movie.id}
+              movie={movie}
+              currentPage={currentPage}
+              pageContext="watchlist"
+              useEnhancedActions={true}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && movies.length === 0 && (
+        <div className="text-center py-16">
+          <div className="relative">
+            <Clock className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <X className="w-6 h-6 text-gray-500 absolute -top-1 -right-1" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-300 mb-2">
+            Your watchlist is empty
+          </h3>
+          <p className="text-gray-500 mb-6">
+            Add movies to your watchlist to keep track of what you want to watch
+          </p>
+          <a
+            href="/"
+            className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all duration-300"
           >
-            {Array.from({ length: settings.gridColumns * settings.gridRows }).map((_, index) => (
-              <MovieCardSkeleton key={index} />
-            ))}
-          </div>
-        )}
+            <Clock className="w-4 h-4" />
+            <span>Browse Movies</span>
+          </a>
+        </div>
+      )}
 
-        {/* Movies Grid */}
-        {!loading && movies.length > 0 && (
-          <div 
-            className="grid gap-6"
-            style={{
-              gridTemplateColumns: `repeat(${settings.gridColumns}, 1fr)`
-            }}
-          >
-            {movies.map((movie) => (
-              <MovieCard
-                key={movie.id}
-                movie={movie}
-                onFavoriteToggle={handleFavoriteToggle}
-                onWatchlistToggle={handleWatchlistToggle}
-                currentPage={currentPage}
-                pageContext="watchlist"
-                className={movieActions.isWatchlistChanging(movie.id) ? 'opacity-70 pointer-events-none' : ''}
-              />
-            ))}
+      {/* Error State */}
+      {error && (
+        <div className="text-center py-12">
+          <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-6 max-w-md mx-auto">
+            <h3 className="text-xl font-semibold text-red-400 mb-2">
+              Error Loading Watchlist
+            </h3>
+            <p className="text-red-300 text-sm">
+              {error.message}
+            </p>
           </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && movies.length === 0 && (
-          <div className="text-center py-16 space-y-6">
-            <div className="w-24 h-24 mx-auto bg-gray-800 rounded-full flex items-center justify-center">
-              <Clock className="w-12 h-12 text-gray-600" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-2xl font-semibold text-gray-300">Your watchlist is empty</h3>
-              <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
-                Start building your watchlist by browsing movies and clicking the &quot;Add to Watchlist&quot; button on movies you want to watch later.
-              </p>
-            </div>
-            <div className="flex justify-center">
-              <a
-                href="/"
-                className="btn-primary flex items-center space-x-2"
-              >
-                <Play className="w-4 h-4" />
-                <span>Browse Movies</span>
-              </a>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Pagination */}
-      {!loading && totalPages > 1 && (
-        <div className="pt-8 border-t border-gray-800">
+      {!isLoading && movies.length > 0 && totalPages > 1 && (
+        <div className="flex justify-center">
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -209,7 +167,7 @@ function WatchlistContent() {
       )}
 
       {/* Info Section */}
-      {!loading && movies.length > 0 && (
+      {!isLoading && movies.length > 0 && (
         <div className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 border border-blue-500/30 rounded-xl p-6">
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0 w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
@@ -231,7 +189,7 @@ function WatchlistContent() {
 
 export default function WatchlistPage() {
   return (
-    <Suspense fallback={<MovieCardSkeleton />}>
+    <Suspense fallback={<MovieGridSkeleton />}>
       <WatchlistContent />
     </Suspense>
   );

@@ -7,6 +7,7 @@ import { Heart, Play, Clock } from 'lucide-react';
 import { Movie } from '@/types/movie';
 import { cn } from '@/lib/utils';
 import RatingComponent from './RatingComponent';
+import { useEnhancedMovieActions } from '@/hooks/use-enhanced-movie-actions';
 
 interface MovieCardProps {
   movie: Movie;
@@ -16,17 +17,33 @@ interface MovieCardProps {
   className?: string;
   currentPage?: number;
   pageContext?: 'home' | 'favorites' | 'watchlist';
+  /** Use enhanced TanStack Query actions instead of callbacks (recommended) */
+  useEnhancedActions?: boolean;
 }
 
-export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, onRatingUpdate, className, currentPage, pageContext = 'home' }: MovieCardProps) {
+export default function MovieCard({ 
+  movie, 
+  onFavoriteToggle, 
+  onWatchlistToggle, 
+  onRatingUpdate, 
+  className, 
+  currentPage, 
+  pageContext = 'home',
+  useEnhancedActions = false 
+}: MovieCardProps) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+
+  // Use enhanced movie actions if enabled
+  const enhancedActions = useEnhancedMovieActions();
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (onFavoriteToggle) {
+    if (useEnhancedActions) {
+      enhancedActions.toggleFavorite(movie.id, movie.isFavourite);
+    } else if (onFavoriteToggle) {
       onFavoriteToggle(movie.id);
     }
   };
@@ -35,16 +52,25 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
     e.preventDefault();
     e.stopPropagation();
     
-    if (onWatchlistToggle) {
+    if (useEnhancedActions) {
+      enhancedActions.toggleWatchlist(movie.id, movie.isInWatchlist);
+    } else if (onWatchlistToggle) {
       onWatchlistToggle(movie.id);
     }
   };
 
   const handleRatingChange = async (rating: number) => {
-    if (onRatingUpdate) {
+    if (useEnhancedActions) {
+      enhancedActions.updateRating(movie.id, rating);
+    } else if (onRatingUpdate) {
       await onRatingUpdate(movie.id, rating);
     }
   };
+
+  // Get loading states
+  const isFavoriteLoading = useEnhancedActions ? enhancedActions.isFavoriteChanging(movie.id) : false;
+  const isWatchlistLoading = useEnhancedActions ? enhancedActions.isWatchlistChanging(movie.id) : false;
+  const isRatingLoading = useEnhancedActions ? enhancedActions.isRatingChanging(movie.id) : false;
 
   // Create the movie URL with page parameter if available
   const createMovieUrl = () => {
@@ -133,15 +159,20 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
             "opacity-100" // Always visible
           )}
           aria-label={movie.isFavourite ? "Remove from favorites" : "Add to favorites"}
+          disabled={isFavoriteLoading}
         >
-          <Heart
-            className={cn(
-              "w-4 h-4 transition-colors duration-300",
-              movie.isFavourite 
-                ? "text-red-500 fill-red-500" 
-                : "text-white hover:text-red-400"
-            )}
-          />
+          {isFavoriteLoading ? (
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Heart
+              className={cn(
+                "w-4 h-4 transition-colors duration-300",
+                movie.isFavourite 
+                  ? "text-red-500 fill-red-500" 
+                  : "text-white hover:text-red-400"
+              )}
+            />
+          )}
         </button>
 
         {/* Watchlist button */}
@@ -154,15 +185,20 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
             "opacity-100" // Always visible
           )}
           aria-label={movie.isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+          disabled={isWatchlistLoading}
         >
-          <Clock
-            className={cn(
-              "w-4 h-4 transition-colors duration-300",
-              movie.isInWatchlist 
-                ? "text-blue-500 fill-blue-500" 
-                : "text-white hover:text-blue-400"
-            )}
-          />
+          {isWatchlistLoading ? (
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Clock
+              className={cn(
+                "w-4 h-4 transition-colors duration-300",
+                movie.isInWatchlist 
+                  ? "text-blue-500 fill-blue-500" 
+                  : "text-white hover:text-blue-400"
+              )}
+            />
+          )}
         </button>
       </div>
 
@@ -175,6 +211,7 @@ export default function MovieCard({ movie, onFavoriteToggle, onWatchlistToggle, 
             onRatingChange={handleRatingChange}
             size="sm"
             showValue={true}
+            readonly={isRatingLoading}
           />
           <span className="text-xs text-gray-500">
             {new Date(movie.publishedAt).getFullYear()}

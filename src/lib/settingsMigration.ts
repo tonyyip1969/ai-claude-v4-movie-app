@@ -14,6 +14,7 @@ export class SettingsMigration {
     gridColumns: 5,
     gridRows: 4,
     sidebarCollapsed: false,
+    showHeader: true,
   };
 
   /**

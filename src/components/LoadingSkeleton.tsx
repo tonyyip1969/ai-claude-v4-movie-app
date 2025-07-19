@@ -19,25 +19,13 @@ export function MovieCardSkeleton({ className }: { className?: string }) {
       
       {/* Content skeleton */}
       <div className="p-4 space-y-3">
-        {/* Title */}
-        <div className="h-5 bg-gray-700 rounded skeleton" />
-        
-        {/* Description */}
-        <div className="space-y-2">
-          <div className="h-3 bg-gray-700 rounded skeleton" />
-          <div className="h-3 bg-gray-700 rounded w-3/4 skeleton" />
-        </div>
-        
         {/* Rating */}
-        <div className="flex items-center space-x-2">
-          <div className="h-4 w-20 bg-gray-700 rounded skeleton" />
-          <div className="h-4 w-12 bg-gray-700 rounded skeleton" />
-        </div>
-        
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-          <div className="h-3 w-16 bg-gray-700 rounded skeleton" />
-          <div className="h-3 w-12 bg-gray-700 rounded skeleton" />
+        <div className="flex justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="h-4 w-20 bg-gray-700 rounded skeleton" />
+            <div className="h-4 w-8 bg-gray-700 rounded skeleton" />
+          </div>
+          <div className="h-4 w-8 bg-gray-700 rounded skeleton" />
         </div>
       </div>
     </div>

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Heart, Shuffle, Menu, X, Film, Clock, Settings, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useMovieCounts } from '@/hooks/use-movie-counts';
 
 const navigation = [
   { name: 'Home', href: '/', icon: Home },
@@ -25,30 +26,10 @@ interface SidebarProps {
 
 export default function Sidebar({ className }: SidebarProps) {
   const { isCollapsed, isMobileOpen, setIsMobileOpen, toggleSidebar } = useSidebar();
-  const [counts, setCounts] = useState<{ favorites: number; watchlist: number }>({ favorites: 0, watchlist: 0 });
   const pathname = usePathname();
-
-  // Fetch movie counts
-  useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const response = await fetch('/api/movies/counts');
-        if (response.ok) {
-          const data = await response.json();
-          setCounts(data);
-        }
-      } catch (error) {
-        console.error('Error fetching movie counts:', error);
-      }
-    };
-
-    fetchCounts();
-    
-    // Refetch counts when pathname changes (to update counts when navigating)
-    const interval = setInterval(fetchCounts, 5000); // Update every 5 seconds
-    
-    return () => clearInterval(interval);
-  }, [pathname]);
+  
+  // Use optimized movie counts hook
+  const { data: counts, isLoading: isCountsLoading } = useMovieCounts();
 
   // Close mobile sidebar when route changes
   useEffect(() => {
@@ -66,6 +47,9 @@ export default function Sidebar({ className }: SidebarProps) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [setIsMobileOpen]);
+
+  // Default counts fallback
+  const movieCounts = counts ?? { total: 0, favorites: 0, watchlist: 0 };
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
@@ -104,9 +88,9 @@ export default function Sidebar({ className }: SidebarProps) {
           // Get count for this navigation item
           let count = 0;
           if (item.href === '/favorites') {
-            count = counts.favorites;
+            count = movieCounts.favorites;
           } else if (item.href === '/watchlist') {
-            count = counts.watchlist;
+            count = movieCounts.watchlist;
           }
           
           return (
@@ -147,6 +131,10 @@ export default function Sidebar({ className }: SidebarProps) {
                     )}>
                       {count}
                     </span>
+                  )}
+                  {/* Loading indicator for counts */}
+                  {isCountsLoading && (count > 0 || (!counts && (item.href === '/favorites' || item.href === '/watchlist'))) && (
+                    <div className="w-4 h-4 border-2 border-gray-600 border-t-primary-400 rounded-full animate-spin" />
                   )}
                 </div>
               )}

@@ -2,31 +2,21 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Movie, PaginatedMovies } from '@/types/movie';
+import { Movie } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
 import SearchBar from '@/components/SearchBar';
 import Pagination from '@/components/Pagination';
 import { MovieGridSkeleton, SearchSkeleton } from '@/components/LoadingSkeleton';
 import { Film, Search as SearchIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useSettings } from '@/hooks/useSettings';
-import { useMovieActions, createMovieStateUpdaters } from '@/hooks/useMovieActions';
+import { useMovieList } from '@/hooks/use-movie-queries';
 
 function HomeContent() {
   const { settings, moviesPerPage, isLoaded } = useSettings();
   const searchParams = useSearchParams();
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [searchResults, setSearchResults] = useState<Movie[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [searchResults, setSearchResults] = useState<Movie[]>([]);
   const [searchMode, setSearchMode] = useState(false);
-
-  // Use centralized movie actions hook
-  const movieStateUpdaters = createMovieStateUpdaters(setMovies, {
-    updateSearchResults: { setSearchResults, searchMode }
-  });
-  const movieActions = useMovieActions(movieStateUpdaters);
 
   // Initialize page from URL parameter
   useEffect(() => {
@@ -39,55 +29,29 @@ function HomeContent() {
     }
   }, [searchParams]);
 
-  // Fetch movies for current page
-  const fetchMovies = async (page: number) => {
-    if (!isLoaded) return; // Wait for settings to load
-    
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/movies?page=${page}&limit=${moviesPerPage}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-        },
-      });
-      const data: PaginatedMovies = await response.json();
-      
-      if (response.ok) {
-        setMovies(data.movies);
-        setTotalPages(data.totalPages);
-        setCurrentPage(data.currentPage);
-      } else {
-        console.error('Failed to fetch movies');
-      }
-    } catch (error) {
-      console.error('Error fetching movies:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use enhanced query hooks for data fetching
+  const {
+    data: movieData,
+    isLoading: moviesLoading,
+  } = useMovieList({
+    page: currentPage,
+    limit: moviesPerPage,
+  });
 
-  // Load initial movies when settings are loaded
-  useEffect(() => {
-    if (isLoaded) {
-      fetchMovies(currentPage);
-    }
-  }, [isLoaded, moviesPerPage, currentPage]);
-
-  // Refetch when settings change
-  useEffect(() => {
-    if (isLoaded && !searchMode) {
-      fetchMovies(currentPage);
-    }
-  }, [moviesPerPage]);
+  // Get current data to display
+  const movies = movieData?.movies || [];
+  const totalPages = movieData?.totalPages || 1;
+  const loading = moviesLoading;
 
   // Handle page change
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
-    fetchMovies(page);
+    // Update URL
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', page.toString());
+    window.history.pushState(null, '', url.toString());
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
   // Handle search results
   const handleSearchResults = useCallback((results: Movie[]) => {
@@ -101,23 +65,15 @@ function HomeContent() {
     setSearchMode(false);
   }, []);
 
-  // Handle favorite toggle
-  const handleFavoriteToggle = async (movieId: number) => {
-    await movieActions.toggleFavorite(movieId);
-  };
-
-  // Handle rating update
-  const handleRatingUpdate = async (movieId: number, rating: number) => {
-    await movieActions.updateRating(movieId, rating);
-  };
-
-  // Handle watchlist toggle
-  const handleWatchlistToggle = async (movieId: number) => {
-    await movieActions.toggleWatchlist(movieId);
-  };
+  // Note: Action handlers are not needed when using enhanced actions
+  // The MovieCard will handle actions through the useEnhancedMovieActions hook
 
   const displayMovies = searchMode ? searchResults : movies;
   const showPagination = !searchMode && !loading;
+
+  if (!isLoaded) {
+    return <MovieGridSkeleton />;
+  }
 
   return (
     <div className="space-y-8">
@@ -194,14 +150,8 @@ function HomeContent() {
               <MovieCard
                 key={movie.id}
                 movie={movie}
-                onFavoriteToggle={handleFavoriteToggle}
-                onRatingUpdate={handleRatingUpdate}
-                onWatchlistToggle={handleWatchlistToggle}
+                useEnhancedActions={true}
                 currentPage={!searchMode ? currentPage : undefined}
-                className={cn(
-                  (movieActions.isFavoriteChanging(movie.id) || movieActions.isWatchlistChanging(movie.id)) && 'opacity-70 pointer-events-none',
-                  movieActions.isRatingChanging(movie.id) && 'opacity-70'
-                )}
               />
             ))}
           </div>
@@ -236,7 +186,7 @@ function HomeContent() {
 
       {/* Pagination */}
       {showPagination && totalPages > 1 && (
-        <div className="pt-8 border-t border-gray-800">
+        <div className="flex justify-center">
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

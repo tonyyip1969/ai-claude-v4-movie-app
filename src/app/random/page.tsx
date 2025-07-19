@@ -6,22 +6,16 @@ import MovieCard from '@/components/MovieCard';
 import { MovieCardSkeleton } from '@/components/LoadingSkeleton';
 import { Shuffle, RefreshCw, Dice6 } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
-import { useMovieActions } from '@/hooks/useMovieActions';
+import { useToggleFavorite, useToggleWatchlist } from '@/hooks/use-movie-mutations';
 
 export default function RandomPage() {
   const { settings } = useSettings();
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Use centralized movie actions hook
-  const movieActions = useMovieActions({
-    onFavoriteUpdate: (movieId, isFavourite) => {
-      setMovie(prev => prev ? { ...prev, isFavourite } : null);
-    },
-    onWatchlistUpdate: (movieId, isInWatchlist) => {
-      setMovie(prev => prev ? { ...prev, isInWatchlist } : null);
-    }
-  });
+  // Use TanStack Query mutations for movie actions
+  const favoriteMutation = useToggleFavorite();
+  const watchlistMutation = useToggleWatchlist();
 
   const fetchRandomMovie = async () => {
     setLoading(true);
@@ -52,11 +46,23 @@ export default function RandomPage() {
   }, []);
 
   const handleFavoriteToggle = async (movieId: number) => {
-    await movieActions.toggleFavorite(movieId);
+    if (!movie) return;
+    favoriteMutation.mutate({ 
+      movieId, 
+      currentStatus: movie.isFavourite 
+    });
+    // Optimistically update local state
+    setMovie(prev => prev ? { ...prev, isFavourite: !prev.isFavourite } : null);
   };
 
   const handleWatchlistToggle = async (movieId: number) => {
-    await movieActions.toggleWatchlist(movieId);
+    if (!movie) return;
+    watchlistMutation.mutate({ 
+      movieId, 
+      currentStatus: movie.isInWatchlist 
+    });
+    // Optimistically update local state
+    setMovie(prev => prev ? { ...prev, isInWatchlist: !prev.isInWatchlist } : null);
   };
 
   const handleNewRandom = () => {
@@ -102,19 +108,19 @@ export default function RandomPage() {
       <div className="space-y-6">
         {/* Loading State */}
         {loading && (
-          <div className="w-full">
+          <div className="px-40">
             <MovieCardSkeleton />
           </div>
         )}
 
         {/* Random Movie */}
         {!loading && movie && (
-          <div className="w-full">
+          <div className="px-40">
             <MovieCard
               movie={movie}
               onFavoriteToggle={handleFavoriteToggle}
               onWatchlistToggle={handleWatchlistToggle}
-              className={movieActions.isFavoriteChanging(movie.id) || movieActions.isWatchlistChanging(movie.id) ? 'opacity-70 pointer-events-none' : ''}
+              className={favoriteMutation.isPending || watchlistMutation.isPending ? 'opacity-70 pointer-events-none' : ''}
             />
           </div>
         )}

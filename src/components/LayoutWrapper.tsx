@@ -5,6 +5,7 @@ import { SidebarProvider } from '@/contexts/SidebarContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import Sidebar from '@/components/Sidebar';
 import { cn } from '@/lib/utils';
+import { useQueryOptimization } from '@/hooks/use-query-optimization';
 
 interface LayoutWrapperProps {
   children: React.ReactNode;
@@ -13,6 +14,9 @@ interface LayoutWrapperProps {
 function LayoutContent({ children }: LayoutWrapperProps) {
   const pathname = usePathname();
   const { isCollapsed } = useSidebar();
+  
+  // Enable query optimization for better performance
+  useQueryOptimization();
   
   // Hide sidebar on movie detail pages
   const hideSidebar = pathname?.startsWith('/movie/');

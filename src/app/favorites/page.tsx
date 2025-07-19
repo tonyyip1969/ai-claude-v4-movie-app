@@ -2,34 +2,18 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Movie } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
 import Pagination from '@/components/Pagination';
 import { MovieGridSkeleton } from '@/components/LoadingSkeleton';
 import { Heart, HeartOff } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
-import { useMovieActions, createMovieStateUpdaters } from '@/hooks/useMovieActions';
-
-interface PaginatedFavorites {
-  movies: Movie[];
-  total: number;
-  totalPages: number;
-  currentPage: number;
-}
+import { useFavoriteMovies } from '@/hooks/use-movie-queries';
+import { cn } from '@/lib/utils';
 
 function FavoritesContent() {
   const { settings, moviesPerPage, isLoaded } = useSettings();
   const searchParams = useSearchParams();
-  const [movies, setMovies] = useState<Movie[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-
-  // Use centralized movie actions hook
-  const movieStateUpdaters = createMovieStateUpdaters(setMovies, {
-    removeOnUnfavorite: true // Remove from favorites list when unfavorited
-  });
-  const movieActions = useMovieActions(movieStateUpdaters);
   
   // Initialize page from URL parameter
   useEffect(() => {
@@ -42,61 +26,32 @@ function FavoritesContent() {
     }
   }, [searchParams]);
 
-  const fetchFavorites = async (page: number) => {
-    if (!isLoaded) return; // Wait for settings to load
-    
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/movies/favorites?page=${page}&limit=${moviesPerPage}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-        },
-      });
-      const data: PaginatedFavorites = await response.json();
-      
-      if (response.ok) {
-        setMovies(data.movies || []);
-        setTotalPages(data.totalPages);
-        setCurrentPage(data.currentPage);
-      } else {
-        console.error('Failed to fetch favorite movies');
-      }
-    } catch (error) {
-      console.error('Error fetching favorite movies:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use enhanced query hook for favorites
+  const {
+    data: favoritesData,
+    isLoading,
+    error,
+  } = useFavoriteMovies({
+    page: currentPage,
+    limit: moviesPerPage,
+  });
 
-  // Load initial favorites when settings are loaded
-  useEffect(() => {
-    if (isLoaded) {
-      fetchFavorites(currentPage);
-    }
-  }, [isLoaded, moviesPerPage, currentPage]);
-
-  // Handle page change
+  // Handle page changes
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    fetchFavorites(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Update URL
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', page.toString());
+    window.history.pushState(null, '', url.toString());
   };
 
-  const handleFavoriteToggle = async (movieId: number) => {
-    await movieActions.toggleFavorite(movieId);
-  };
+  if (!isLoaded) {
+    return <MovieGridSkeleton />;
+  }
 
-  // Handle rating update
-  const handleRatingUpdate = async (movieId: number, rating: number) => {
-    await movieActions.updateRating(movieId, rating);
-  };
-
-  // Handle watchlist toggle
-  const handleWatchlistToggle = async (movieId: number) => {
-    await movieActions.toggleWatchlist(movieId);
-  };
+  const movies = favoritesData?.movies || [];
+  const totalPages = favoritesData?.totalPages || 1;
+  const total = favoritesData?.total || 0;
 
   return (
     <div className="space-y-8">
@@ -121,81 +76,85 @@ function FavoritesContent() {
         </div>
       )}
 
-      {/* Content Section */}
-      <div className="space-y-6">
-        {/* Section Header */}
-        {!loading && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Heart className="w-6 h-6 text-red-400 fill-red-400" />
-              <h2 className="text-2xl font-bold text-white">Favorite Movies</h2>
-              <span className="bg-red-500/20 text-red-300 px-3 py-1 rounded-full text-sm">
-                {movies.length} {movies.length === 1 ? 'movie' : 'movies'}
-              </span>
-            </div>
-            
-            {totalPages > 1 && (
-              <p className="text-gray-400 text-sm">
-                Page {currentPage} of {totalPages}
-              </p>
-            )}
+      {/* Section Header */}
+      {!isLoading && (total > 0) && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Heart className="w-6 h-6 text-red-400 fill-red-400" />
+            <h2 className="text-2xl font-bold text-white">Favorite Movies</h2>
+            <span className="bg-red-500/20 text-red-300 px-3 py-1 rounded-full text-sm">
+              {total} {total === 1 ? 'movie' : 'movies'}
+            </span>
           </div>
-        )}
+          
+          {totalPages > 1 && (
+            <p className="text-gray-400 text-sm">
+              Page {currentPage} of {totalPages}
+            </p>
+          )}
+        </div>
+      )}
 
-        {/* Loading State */}
-        {loading && <MovieGridSkeleton />}
+      {/* Loading State */}
+      {isLoading && <MovieGridSkeleton />}
 
-        {/* Movies Grid */}
-        {!loading && movies.length > 0 && (
-          <div 
-            className="grid gap-6"
-            style={{
-              gridTemplateColumns: `repeat(${settings.gridColumns}, 1fr)`
-            }}
+      {/* Movies Grid */}
+      {!isLoading && movies.length > 0 && (
+        <div 
+          className={cn(
+            "grid gap-6 transition-all duration-300",
+            `grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-${settings.gridColumns} xl:grid-cols-${Math.min(settings.gridColumns + 1, 6)}`
+          )}
+        >
+          {movies.map((movie) => (
+            <MovieCard
+              key={movie.id}
+              movie={movie}
+              currentPage={currentPage}
+              pageContext="favorites"
+              useEnhancedActions={true}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && movies.length === 0 && (
+        <div className="text-center py-16">
+          <HeartOff className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-300 mb-2">
+            No favorite movies yet
+          </h3>
+          <p className="text-gray-500 mb-6">
+            Start exploring and add movies to your favorites to see them here
+          </p>
+          <a
+            href="/"
+            className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-300"
           >
-            {movies.map((movie) => (
-              <MovieCard
-                key={movie.id}
-                movie={movie}
-                onFavoriteToggle={handleFavoriteToggle}
-                onRatingUpdate={handleRatingUpdate}
-                onWatchlistToggle={handleWatchlistToggle}
-                currentPage={currentPage}
-                pageContext="favorites"
-                className={movieActions.isFavoriteChanging(movie.id) ? 'opacity-70 pointer-events-none' : ''}
-              />
-            ))}
-          </div>
-        )}
+            <Heart className="w-4 h-4" />
+            <span>Discover Movies</span>
+          </a>
+        </div>
+      )}
 
-        {/* Empty State */}
-        {!loading && movies.length === 0 && (
-          <div className="text-center py-16 space-y-6">
-            <div className="w-24 h-24 mx-auto bg-gray-800 rounded-full flex items-center justify-center">
-              <HeartOff className="w-12 h-12 text-gray-600" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-2xl font-semibold text-gray-300">No favorites yet</h3>
-              <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
-                You haven&apos;t added any movies to your favorites. Browse our collection and click the heart icon on movies you love to add them here.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-              <a
-                href="/"
-                className="btn-primary flex items-center space-x-2"
-              >
-                <Heart className="w-4 h-4" />
-                <span>Browse Movies</span>
-              </a>
-            </div>
+      {/* Error State */}
+      {error && (
+        <div className="text-center py-12">
+          <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-6 max-w-md mx-auto">
+            <h3 className="text-xl font-semibold text-red-400 mb-2">
+              Error Loading Favorites
+            </h3>
+            <p className="text-red-300 text-sm">
+              {error.message}
+            </p>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Pagination */}
-      {!loading && totalPages > 1 && (
-        <div className="pt-8 border-t border-gray-800">
+      {!isLoading && movies.length > 0 && totalPages > 1 && (
+        <div className="flex justify-center">
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -205,7 +164,7 @@ function FavoritesContent() {
       )}
 
       {/* Tips Section */}
-      {!loading && movies.length > 0 && (
+      {!isLoading && movies.length > 0 && (
         <div className="bg-gradient-to-br from-red-900/20 to-pink-900/20 border border-red-500/30 rounded-xl p-6">
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0 w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
