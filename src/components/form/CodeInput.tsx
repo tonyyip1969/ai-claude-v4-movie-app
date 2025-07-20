@@ -64,7 +64,7 @@ export function CodeInput({
           message: result,
         });
       }
-    } catch (error) {
+    } catch {
       // On error, remain in idle state (fail open)
       setValidationStatus('idle');
     } finally {

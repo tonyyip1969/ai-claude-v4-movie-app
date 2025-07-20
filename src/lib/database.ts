@@ -301,7 +301,7 @@ class MovieDatabase {
 
     // Build dynamic update query
     const updateFields: string[] = [];
-    const updateValues: any[] = [];
+    const updateValues: unknown[] = [];
 
     if (updates.title !== undefined) {
       updateFields.push('title = ?');
@@ -349,7 +349,7 @@ class MovieDatabase {
   // Get movie by code (with optional exclude ID for uniqueness checking)
   getMovieByCode(code: string, excludeId?: number): Movie | null {
     let query = 'SELECT * FROM movies WHERE code = ?';
-    const params: any[] = [code];
+    const params: unknown[] = [code];
 
     if (excludeId !== undefined) {
       query += ' AND id != ?';

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Movie } from '@/types/movie';
-import MovieCard from '@/components/MovieCard';
 import SearchBar from '@/components/SearchBar';
 import Pagination from '@/components/Pagination';
 import ResponsiveMovieGrid from '@/components/ResponsiveMovieGrid';

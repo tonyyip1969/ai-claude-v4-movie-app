@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Movie, MovieUpdatePayload } from '@/types/movie';
 
 interface MovieEditFormProps {
@@ -210,9 +211,11 @@ export function MovieEditForm({
                         </div>
                       )}
                       {!imageLoading && !imageError && (
-                        <img
+                        <Image
                           src={formData.coverUrl}
                           alt="Cover preview"
+                          width={192}
+                          height={128}
                           className="w-48 h-32 object-cover rounded-md border border-gray-300 dark:border-gray-600"
                           onLoad={() => setImageLoading(false)}
                           onError={() => {

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Play, Clock, Edit } from 'lucide-react';
+import { Heart, Play, Clock } from 'lucide-react';
 import { Movie } from '@/types/movie';
 import { cn } from '@/lib/utils';
 import RatingComponent from './RatingComponent';

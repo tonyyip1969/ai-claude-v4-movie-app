@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { UseFormRegister, FieldErrors, UseFormWatch } from 'react-hook-form';
 import { MovieFormData } from '@/lib/movie-validation';
 
@@ -117,11 +118,12 @@ export function ImageUrlInput({
             
             {imageLoadState === 'loaded' && (
               <div className="relative group">
-                <img
+                <Image
                   src={watchedValue}
                   alt={`${label} preview`}
+                  width={128}
+                  height={80}
                   className="w-32 h-20 object-cover rounded-md border border-gray-200 dark:border-gray-600"
-                  loading="lazy"
                   onLoad={handleImageLoad}
                   onError={handleImageError}
                   style={{ display: imageLoadState === 'loaded' ? 'block' : 'none' }}
@@ -132,9 +134,11 @@ export function ImageUrlInput({
 
             {/* Hidden image for loading test */}
             {imageLoadState === 'loading' && (
-              <img
+              <Image
                 src={watchedValue}
                 alt=""
+                width={1}
+                height={1}
                 className="hidden"
                 onLoad={handleImageLoad}
                 onError={handleImageError}
