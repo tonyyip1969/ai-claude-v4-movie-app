@@ -1,8 +1,10 @@
 import { 
   useToggleFavorite, 
   useToggleWatchlist, 
-  useUpdateRating 
+  useUpdateRating,
+  useUpdateMovie
 } from './use-movie-mutations';
+import { MovieUpdatePayload } from '@/types/movie';
 
 /**
  * Enhanced movie actions hook that integrates with TanStack Query
@@ -17,21 +19,25 @@ export interface EnhancedMovieActionsResult {
   favoriteMutation: ReturnType<typeof useToggleFavorite>;
   watchlistMutation: ReturnType<typeof useToggleWatchlist>;
   ratingMutation: ReturnType<typeof useUpdateRating>;
+  updateMovieMutation: ReturnType<typeof useUpdateMovie>;
   
   // Simplified action functions
   toggleFavorite: (movieId: number, currentStatus: boolean) => void;
   toggleWatchlist: (movieId: number, currentStatus: boolean) => void;
   updateRating: (movieId: number, rating: number) => void;
+  updateMovie: (movieId: number, updates: MovieUpdatePayload) => void;
   
   // Loading states
   isFavoriteChanging: (movieId: number) => boolean;
   isWatchlistChanging: (movieId: number) => boolean;
   isRatingChanging: (movieId: number) => boolean;
+  isMovieUpdating: (movieId: number) => boolean;
   
   // Error states
   favoriteError: Error | null;
   watchlistError: Error | null;
   ratingError: Error | null;
+  updateMovieError: Error | null;
 }
 
 /**
@@ -48,6 +54,7 @@ export function useEnhancedMovieActions(): EnhancedMovieActionsResult {
   const favoriteMutation = useToggleFavorite();
   const watchlistMutation = useToggleWatchlist();
   const ratingMutation = useUpdateRating();
+  const updateMovieMutation = useUpdateMovie();
 
   // Simplified action functions
   const toggleFavorite = (movieId: number, currentStatus: boolean) => {
@@ -60,6 +67,10 @@ export function useEnhancedMovieActions(): EnhancedMovieActionsResult {
 
   const updateRating = (movieId: number, rating: number) => {
     ratingMutation.mutate({ movieId, rating });
+  };
+
+  const updateMovie = (movieId: number, updates: MovieUpdatePayload) => {
+    updateMovieMutation.mutate({ movieId, updates });
   };
 
   // Loading state checkers
@@ -78,26 +89,35 @@ export function useEnhancedMovieActions(): EnhancedMovieActionsResult {
            ratingMutation.variables?.movieId === movieId;
   };
 
+  const isMovieUpdating = (movieId: number) => {
+    return updateMovieMutation.isPending && 
+           updateMovieMutation.variables?.movieId === movieId;
+  };
+
   return {
     // Full mutation objects for advanced usage
     favoriteMutation,
     watchlistMutation,
     ratingMutation,
+    updateMovieMutation,
     
     // Simplified action functions
     toggleFavorite,
     toggleWatchlist,
     updateRating,
+    updateMovie,
     
     // Loading states
     isFavoriteChanging,
     isWatchlistChanging,
     isRatingChanging,
+    isMovieUpdating,
     
     // Error states
     favoriteError: favoriteMutation.error,
     watchlistError: watchlistMutation.error,
     ratingError: ratingMutation.error,
+    updateMovieError: updateMovieMutation.error,
   };
 }
 

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidationPatterns } from '@/lib/query-keys';
-import { Movie } from '@/types/movie';
+import { Movie, MovieUpdatePayload } from '@/types/movie';
 
 interface MovieCounts {
   total: number;
@@ -35,6 +35,11 @@ interface ToggleWatchlistParams {
 interface UpdateRatingParams {
   movieId: number;
   rating: number;
+}
+
+interface UpdateMovieParams {
+  movieId: number;
+  updates: MovieUpdatePayload;
 }
 
 /**
@@ -83,6 +88,24 @@ async function updateRatingAction(movieId: number, rating: number): Promise<{ ra
 
   if (!response.ok) {
     throw new Error(`Failed to update rating: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Update movie details
+ */
+async function updateMovieAction(movieId: number, updates: MovieUpdatePayload): Promise<Movie> {
+  const response = await fetch(`/api/movies/${movieId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'updateMovie', updates }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Failed to update movie: ${response.status}`);
   }
 
   return response.json();
@@ -290,6 +313,65 @@ export function useUpdateRating() {
     onSettled: (data, error, variables) => {
       queryClient.invalidateQueries({ queryKey: invalidationPatterns.movieDetail(variables.movieId) });
       queryClient.invalidateQueries({ queryKey: invalidationPatterns.movieLists() });
+    },
+  });
+}
+
+/**
+ * Hook for updating movie details with optimistic updates
+ */
+export function useUpdateMovie() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ movieId, updates }: UpdateMovieParams) => updateMovieAction(movieId, updates),
+    
+    // Optimistic update
+    onMutate: async ({ movieId, updates }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: invalidationPatterns.movieDetail(movieId) });
+      await queryClient.cancelQueries({ queryKey: invalidationPatterns.movieLists() });
+
+      // Snapshot previous value
+      const previousMovie = queryClient.getQueryData(invalidationPatterns.movieDetail(movieId));
+
+      // Optimistically update movie detail
+      queryClient.setQueryData(invalidationPatterns.movieDetail(movieId), (old: Movie | undefined) => {
+        if (!old) return old;
+        return { ...old, ...updates };
+      });
+
+      // Optimistically update all movie lists that might contain this movie
+      queryClient.setQueriesData(
+        { queryKey: invalidationPatterns.movieLists() },
+        (old: MovieListResponse | undefined) => {
+          if (!old?.movies) return old;
+          return {
+            ...old,
+            movies: old.movies.map((movie: Movie) =>
+              movie.id === movieId
+                ? { ...movie, ...updates }
+                : movie
+            ),
+          };
+        }
+      );
+
+      return { previousMovie };
+    },
+
+    // Rollback on error
+    onError: (err, variables, context) => {
+      if (context?.previousMovie) {
+        queryClient.setQueryData(invalidationPatterns.movieDetail(variables.movieId), context.previousMovie);
+      }
+    },
+
+    // Always invalidate after mutation
+    onSettled: (data, error, variables) => {
+      queryClient.invalidateQueries({ queryKey: invalidationPatterns.movieDetail(variables.movieId) });
+      queryClient.invalidateQueries({ queryKey: invalidationPatterns.movieLists() });
+      queryClient.invalidateQueries({ queryKey: invalidationPatterns.movieCounts() });
     },
   });
 }

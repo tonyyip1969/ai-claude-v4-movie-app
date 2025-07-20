@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowLeft, Heart, Play, Star, Calendar, Code, Film, Clock } from 'lucide-react';
+import { ArrowLeft, Heart, Play, Star, Calendar, Code, Film, Clock, Edit } from 'lucide-react';
 import { Movie } from '@/types/movie';
 import VideoModal from '@/components/VideoModal';
 import RatingComponent from '@/components/RatingComponent';
@@ -109,6 +109,26 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
     setMovie(prev => prev ? { ...prev, rating: newRating } : null);
   };
 
+  const handleEditMovie = () => {
+    if (!movie) return;
+    
+    // Preserve current URL parameters for navigation state
+    const returnPage = searchParams.get('page');
+    const fromPage = searchParams.get('from');
+    
+    let editUrl = `/movie/${movie.id}/edit`;
+    const queryParams = new URLSearchParams();
+    
+    if (returnPage) queryParams.set('page', returnPage);
+    if (fromPage) queryParams.set('from', fromPage);
+    
+    if (queryParams.toString()) {
+      editUrl += `?${queryParams.toString()}`;
+    }
+    
+    router.push(editUrl);
+  };
+
   if (loading) {
     return <MovieDetailSkeleton />;
   }
@@ -177,13 +197,14 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
         <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-12 px-0 pb-6">
           {/* Left Side - Movie Poster and Rating */}
           <div className="flex-[3] space-y-6">
-            <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden bg-gray-800 shadow-2xl">
+            <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden bg-gray-800 shadow-2xl cursor-pointer group"
+                 onClick={() => setShowVideo(true)}>
               {!imageError ? (
                 <Image
                   src={movie.coverUrl}
                   alt={movie.title}
                   fill
-                  className="object-cover"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
                   sizes="(max-width: 1024px) 100vw, 66vw"
                   onError={() => setImageError(true)}
                 />
@@ -195,18 +216,20 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
                   </div>
                 </div>
               )}
+              
+              {/* Play Button Overlay */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="bg-white/90 backdrop-blur-sm rounded-full p-4 shadow-lg transform scale-75 group-hover:scale-100 transition-transform duration-300">
+                  <Play className="w-12 h-12 text-gray-900 fill-gray-900" />
+                </div>
+              </div>
+
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
 
             {/* Action Buttons */}
             <div className="flex flex-col gap-4">
-              <button
-                onClick={() => setShowVideo(true)}
-                className="flex items-center justify-center space-x-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold px-8 py-4 rounded-lg transition-colors"
-              >
-                <Play className="w-5 h-5 fill-white" />
-                <span>Play Movie</span>
-              </button>
-
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={handleFavoriteToggle}
@@ -256,6 +279,15 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
                         : 'Add to Watchlist'
                     }
                   </span>
+                </button>
+
+                {/* Edit Movie Button - Moved to same row */}
+                <button
+                  onClick={handleEditMovie}
+                  className="flex items-center justify-center space-x-2 border-2 border-gray-500/30 text-gray-300 hover:text-white hover:border-gray-400/50 hover:bg-gray-800/30 font-semibold px-8 py-4 rounded-lg transition-all"
+                >
+                  <Edit className="w-5 h-5" />
+                  <span>Edit Movie</span>
                 </button>
               </div>
             </div>

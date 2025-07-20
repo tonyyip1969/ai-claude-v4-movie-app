@@ -236,6 +236,154 @@ class MovieDatabase {
     return result.changes > 0;
   }
 
+  // Update movie with comprehensive field support
+  updateMovie(id: number, updates: {
+    title?: string;
+    description?: string;
+    code?: string;
+    publishedAt?: string;
+    coverUrl?: string;
+    videoUrl?: string;
+  }): boolean {
+    const movie = this.getMovieById(id);
+    if (!movie) {
+      throw new Error('Movie not found');
+    }
+
+    // Validate updates
+    const validationErrors: string[] = [];
+
+    if (updates.title !== undefined) {
+      if (!updates.title.trim()) {
+        validationErrors.push('Title cannot be empty');
+      } else if (updates.title.length > 200) {
+        validationErrors.push('Title must be 200 characters or less');
+      }
+    }
+
+    if (updates.description !== undefined && updates.description.length > 1000) {
+      validationErrors.push('Description must be 1000 characters or less');
+    }
+
+    if (updates.code !== undefined) {
+      if (!updates.code.trim()) {
+        validationErrors.push('Code cannot be empty');
+      } else if (updates.code.length < 3 || updates.code.length > 20) {
+        validationErrors.push('Code must be between 3 and 20 characters');
+      } else if (updates.code !== movie.code && this.getMovieByCode(updates.code, id)) {
+        validationErrors.push('Movie code already exists');
+      }
+    }
+
+    if (updates.videoUrl !== undefined) {
+      if (!updates.videoUrl.trim()) {
+        validationErrors.push('Video URL cannot be empty');
+      } else if (!this.isValidUrl(updates.videoUrl)) {
+        validationErrors.push('Video URL must be a valid URL');
+      }
+    }
+
+    if (updates.coverUrl !== undefined) {
+      if (!updates.coverUrl.trim()) {
+        validationErrors.push('Cover URL cannot be empty');
+      } else if (!this.isValidUrl(updates.coverUrl)) {
+        validationErrors.push('Cover URL must be a valid URL');
+      }
+    }
+
+    if (updates.publishedAt !== undefined && updates.publishedAt.trim() && !this.isValidDate(updates.publishedAt)) {
+      validationErrors.push('Published date must be a valid date');
+    }
+
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors.join('; '));
+    }
+
+    // Build dynamic update query
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+
+    if (updates.title !== undefined) {
+      updateFields.push('title = ?');
+      updateValues.push(updates.title.trim());
+    }
+
+    if (updates.description !== undefined) {
+      updateFields.push('description = ?');
+      updateValues.push(updates.description.trim());
+    }
+
+    if (updates.code !== undefined) {
+      updateFields.push('code = ?');
+      updateValues.push(updates.code.trim());
+    }
+
+    if (updates.publishedAt !== undefined) {
+      updateFields.push('publishedAt = ?');
+      updateValues.push(updates.publishedAt.trim() || null);
+    }
+
+    if (updates.coverUrl !== undefined) {
+      updateFields.push('coverUrl = ?');
+      updateValues.push(updates.coverUrl.trim());
+    }
+
+    if (updates.videoUrl !== undefined) {
+      updateFields.push('videoUrl = ?');
+      updateValues.push(updates.videoUrl.trim());
+    }
+
+    if (updateFields.length === 0) {
+      return false; // No fields to update
+    }
+
+    // Add ID to the end for WHERE clause
+    updateValues.push(id);
+
+    const query = `UPDATE movies SET ${updateFields.join(', ')} WHERE id = ?`;
+    const result = this.db.prepare(query).run(...updateValues);
+
+    return result.changes > 0;
+  }
+
+  // Get movie by code (with optional exclude ID for uniqueness checking)
+  getMovieByCode(code: string, excludeId?: number): Movie | null {
+    let query = 'SELECT * FROM movies WHERE code = ?';
+    const params: any[] = [code];
+
+    if (excludeId !== undefined) {
+      query += ' AND id != ?';
+      params.push(excludeId);
+    }
+
+    const movie = this.db.prepare(query).get(...params) as unknown as Movie | undefined;
+    
+    if (!movie) return null;
+
+    // Convert SQLite integers to booleans
+    return {
+      ...movie,
+      isFavourite: Boolean(movie.isFavourite),
+      isInWatchlist: Boolean(movie.isInWatchlist)
+    } as Movie;
+  }
+
+  // Helper method to validate URLs
+  private isValidUrl(url: string): boolean {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Helper method to validate dates
+  private isValidDate(dateString: string): boolean {
+    const date = new Date(dateString);
+    return !isNaN(date.getTime());
+  }
+
   // Close database connection
   close() {
     this.db.close();
