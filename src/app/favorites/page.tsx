@@ -4,11 +4,11 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import MovieCard from '@/components/MovieCard';
 import Pagination from '@/components/Pagination';
+import ResponsiveMovieGrid from '@/components/ResponsiveMovieGrid';
 import { MovieGridSkeleton } from '@/components/LoadingSkeleton';
 import { Heart, HeartOff } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 import { useFavoriteMovies } from '@/hooks/use-movie-queries';
-import { cn } from '@/lib/utils';
 
 function FavoritesContent() {
   const { settings, moviesPerPage, isLoaded } = useSettings();
@@ -100,22 +100,12 @@ function FavoritesContent() {
 
       {/* Movies Grid */}
       {!isLoading && movies.length > 0 && (
-        <div 
-          className={cn(
-            "grid gap-6 transition-all duration-300",
-            `grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-${settings.gridColumns} xl:grid-cols-${Math.min(settings.gridColumns + 1, 6)}`
-          )}
-        >
-          {movies.map((movie) => (
-            <MovieCard
-              key={movie.id}
-              movie={movie}
-              currentPage={currentPage}
-              pageContext="favorites"
-              useEnhancedActions={true}
-            />
-          ))}
-        </div>
+        <ResponsiveMovieGrid
+          movies={movies}
+          currentPage={currentPage}
+          pageContext="favorites"
+          useEnhancedActions={true}
+        />
       )}
 
       {/* Empty State */}

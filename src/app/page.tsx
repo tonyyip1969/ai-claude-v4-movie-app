@@ -6,6 +6,7 @@ import { Movie } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
 import SearchBar from '@/components/SearchBar';
 import Pagination from '@/components/Pagination';
+import ResponsiveMovieGrid from '@/components/ResponsiveMovieGrid';
 import { MovieGridSkeleton, SearchSkeleton } from '@/components/LoadingSkeleton';
 import { Film, Search as SearchIcon } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
@@ -140,21 +141,12 @@ function HomeContent() {
 
         {/* Movies Grid */}
         {!loading && displayMovies.length > 0 && (
-          <div 
-            className="grid gap-6"
-            style={{
-              gridTemplateColumns: `repeat(${settings.gridColumns}, 1fr)`
-            }}
-          >
-            {displayMovies.map((movie) => (
-              <MovieCard
-                key={movie.id}
-                movie={movie}
-                useEnhancedActions={true}
-                currentPage={!searchMode ? currentPage : undefined}
-              />
-            ))}
-          </div>
+          <ResponsiveMovieGrid
+            movies={displayMovies}
+            currentPage={!searchMode ? currentPage : undefined}
+            pageContext="home"
+            useEnhancedActions={true}
+          />
         )}
 
         {/* No Results */}
