@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Movie } from '@/types/movie';
 import SearchBar from '@/components/SearchBar';
 import Pagination from '@/components/Pagination';
 import ResponsiveMovieGrid from '@/components/ResponsiveMovieGrid';
@@ -10,13 +9,21 @@ import { MovieGridSkeleton, SearchSkeleton } from '@/components/LoadingSkeleton'
 import { Film, Search as SearchIcon } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 import { useMovieList } from '@/hooks/use-movie-queries';
+import { useSearchResults } from '@/hooks/use-search-results';
 
 function HomeContent() {
   const { settings, moviesPerPage, isLoaded } = useSettings();
   const searchParams = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchResults, setSearchResults] = useState<Movie[]>([]);
-  const [searchMode, setSearchMode] = useState(false);
+  
+  // Use the new search results hook that handles mutations automatically
+  const { 
+    searchResults, 
+    searchMode, 
+    handleSearchResults, 
+    handleSearchClear,
+    searchResultActions
+  } = useSearchResults();
 
   // Initialize page from URL parameter
   useEffect(() => {
@@ -51,18 +58,6 @@ function HomeContent() {
     url.searchParams.set('page', page.toString());
     window.history.pushState(null, '', url.toString());
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
-  // Handle search results
-  const handleSearchResults = useCallback((results: Movie[]) => {
-    setSearchResults(results);
-    setSearchMode(true);
-  }, []);
-
-  // Handle search clear
-  const handleSearchClear = useCallback(() => {
-    setSearchResults([]);
-    setSearchMode(false);
   }, []);
 
   // Note: Action handlers are not needed when using enhanced actions
@@ -145,6 +140,23 @@ function HomeContent() {
             currentPage={!searchMode ? currentPage : undefined}
             pageContext="home"
             useEnhancedActions={true}
+            searchResultActions={searchMode ? {
+              onFavoriteToggle: (id: number) => {
+                const movie = displayMovies.find(m => m.id === id);
+                if (movie) {
+                  searchResultActions.toggleFavorite(id, movie.isFavourite);
+                }
+              },
+              onWatchlistToggle: (id: number) => {
+                const movie = displayMovies.find(m => m.id === id);
+                if (movie) {
+                  searchResultActions.toggleWatchlist(id, movie.isInWatchlist);
+                }
+              },
+              onRatingUpdate: (id: number, rating: number) => {
+                searchResultActions.updateRating(id, rating);
+              },
+            } : undefined}
           />
         )}
 

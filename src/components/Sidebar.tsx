@@ -7,6 +7,7 @@ import { Home, Heart, Shuffle, Menu, X, Film, Clock, Settings, Upload } from 'lu
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useMovieCounts } from '@/hooks/use-movie-counts';
+import { getAppVersion } from '@/lib/version';
 
 const navigation = [
   { name: 'Home', href: '/', icon: Home },
@@ -182,7 +183,7 @@ export default function Sidebar({ className }: SidebarProps) {
       <div className="p-6 border-t border-gray-700">
         {(!isCollapsed || isMobileOpen) && (
           <div className="text-center">
-            <p className="text-xs text-gray-500 mb-2">Movie App v1.0</p>
+            <p className="text-xs text-gray-500 mb-2">Movie App v{getAppVersion()}</p>
             <p className="text-xs text-gray-600">
               Built with Next.js & TailwindCSS
             </p>

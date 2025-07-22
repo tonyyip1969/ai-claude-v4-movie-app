@@ -15,7 +15,7 @@ export function MovieCardSkeleton({ className }: { className?: string }) {
       className
     )}>
       {/* Image skeleton */}
-      <div className="aspect-[16/9] bg-gray-700 skeleton" />
+      <div className="aspect-[3/2] bg-gray-700 skeleton" />
       
       {/* Content skeleton */}
       <div className="p-4 space-y-3">
@@ -85,7 +85,7 @@ export function MovieDetailSkeleton({ className }: { className?: string }) {
           {/* Left Side - Movie Poster and Actions */}
           <div className="flex-[2] space-y-6">
             {/* Poster skeleton */}
-            <div className="relative w-full aspect-[16/9] rounded-xl bg-gray-700 skeleton" />
+            <div className="relative w-full aspect-[3/2] rounded-xl bg-gray-700 skeleton" />
 
             {/* Action Buttons skeleton */}
             <div className="flex flex-col gap-4">

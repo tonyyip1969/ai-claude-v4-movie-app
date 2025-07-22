@@ -1,6 +1,18 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+// Read package.json to get version
+const packageJson = JSON.parse(
+  readFileSync(join(process.cwd(), 'package.json'), 'utf8')
+);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  env: {
+    APP_VERSION: packageJson.version,
+    APP_NAME: packageJson.name,
+  },
   experimental: {
     // Ensure API routes are properly handled during static generation
     serverComponentsExternalPackages: ['sqlite3'],

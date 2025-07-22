@@ -17,6 +17,12 @@ interface ResponsiveMovieGridProps {
   gap?: "small" | "medium" | "large";
   /** Whether to use enhanced TanStack Query actions */
   useEnhancedActions?: boolean;
+  /** Search result specific actions for immediate state updates */
+  searchResultActions?: {
+    onFavoriteToggle?: (id: number) => void;
+    onWatchlistToggle?: (id: number) => void;
+    onRatingUpdate?: (id: number, rating: number) => void;
+  };
 }
 
 /**
@@ -44,6 +50,7 @@ export default function ResponsiveMovieGrid({
   className = "",
   gap = "medium",
   useEnhancedActions = true,
+  searchResultActions,
 }: ResponsiveMovieGridProps) {
   const { settings } = useSettings();
 
@@ -70,6 +77,9 @@ export default function ResponsiveMovieGrid({
             currentPage={currentPage}
             pageContext={pageContext}
             useEnhancedActions={useEnhancedActions}
+            onFavoriteToggle={searchResultActions?.onFavoriteToggle}
+            onWatchlistToggle={searchResultActions?.onWatchlistToggle}
+            onRatingUpdate={searchResultActions?.onRatingUpdate}
           />
         ))}
       </div>
@@ -85,6 +95,9 @@ export default function ResponsiveMovieGrid({
             currentPage={currentPage}
             pageContext={pageContext}
             useEnhancedActions={useEnhancedActions}
+            onFavoriteToggle={searchResultActions?.onFavoriteToggle}
+            onWatchlistToggle={searchResultActions?.onWatchlistToggle}
+            onRatingUpdate={searchResultActions?.onRatingUpdate}
           />
         ))}
       </div>
@@ -100,6 +113,9 @@ export default function ResponsiveMovieGrid({
             currentPage={currentPage}
             pageContext={pageContext}
             useEnhancedActions={useEnhancedActions}
+            onFavoriteToggle={searchResultActions?.onFavoriteToggle}
+            onWatchlistToggle={searchResultActions?.onWatchlistToggle}
+            onRatingUpdate={searchResultActions?.onRatingUpdate}
           />
         ))}
       </div>
@@ -119,6 +135,9 @@ export default function ResponsiveMovieGrid({
             currentPage={currentPage}
             pageContext={pageContext}
             useEnhancedActions={useEnhancedActions}
+            onFavoriteToggle={searchResultActions?.onFavoriteToggle}
+            onWatchlistToggle={searchResultActions?.onWatchlistToggle}
+            onRatingUpdate={searchResultActions?.onRatingUpdate}
           />
         ))}
       </div>

@@ -41,10 +41,11 @@ export default function MovieCard({
     e.preventDefault();
     e.stopPropagation();
     
-    if (useEnhancedActions) {
-      enhancedActions.toggleFavorite(movie.id, movie.isFavourite);
-    } else if (onFavoriteToggle) {
+    // Prioritize callback props (search mode) over enhanced actions
+    if (onFavoriteToggle) {
       onFavoriteToggle(movie.id);
+    } else if (useEnhancedActions) {
+      enhancedActions.toggleFavorite(movie.id, movie.isFavourite);
     }
   };
 
@@ -52,18 +53,20 @@ export default function MovieCard({
     e.preventDefault();
     e.stopPropagation();
     
-    if (useEnhancedActions) {
-      enhancedActions.toggleWatchlist(movie.id, movie.isInWatchlist);
-    } else if (onWatchlistToggle) {
+    // Prioritize callback props (search mode) over enhanced actions
+    if (onWatchlistToggle) {
       onWatchlistToggle(movie.id);
+    } else if (useEnhancedActions) {
+      enhancedActions.toggleWatchlist(movie.id, movie.isInWatchlist);
     }
   };
 
   const handleRatingChange = async (rating: number) => {
-    if (useEnhancedActions) {
-      enhancedActions.updateRating(movie.id, rating);
-    } else if (onRatingUpdate) {
+    // Prioritize callback props (search mode) over enhanced actions
+    if (onRatingUpdate) {
       await onRatingUpdate(movie.id, rating);
+    } else if (useEnhancedActions) {
+      enhancedActions.updateRating(movie.id, rating);
     }
   };
 
@@ -97,7 +100,7 @@ export default function MovieCard({
     )}>
       {/* Clickable Image Container - Only this part navigates */}
       <Link href={movieUrl} className="block">
-        <div className="relative aspect-[16/9] overflow-hidden">
+        <div className="relative aspect-[3/2] overflow-hidden">
           {imageLoading && (
             <div className="absolute inset-0 skeleton rounded-lg" />
           )}
@@ -203,14 +206,14 @@ export default function MovieCard({
       </div>
 
       {/* Content - Not clickable for navigation */}
-      <div className="p-4">
+      <div className="p-3">
         {/* Rating and year - Interactive rating, non-clickable year */}
         <div className="flex items-center justify-between">
           <RatingComponent
             rating={movie.rating}
             onRatingChange={handleRatingChange}
             size="sm"
-            showValue={true}
+            showValue={false}
             readonly={isRatingLoading}
           />
           <span className="text-xs text-gray-500">
