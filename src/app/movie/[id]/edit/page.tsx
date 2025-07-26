@@ -21,7 +21,14 @@ function MovieEditContent({ params }: MovieEditPageProps) {
   const searchParams = useSearchParams();
 
   // Use enhanced movie actions for updating
-  const { updateMovie, isMovieUpdating, updateMovieError } = useEnhancedMovieActions();
+  const { updateMovie, isMovieUpdating, updateMovieError, updateMovieMutation } = useEnhancedMovieActions();
+
+  // Clear error state when starting a new save attempt
+  const clearErrorState = () => {
+    if (updateMovieError && updateMovieMutation) {
+      updateMovieMutation.reset();
+    }
+  };
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -52,14 +59,32 @@ function MovieEditContent({ params }: MovieEditPageProps) {
     if (!movie) return;
 
     try {
-      updateMovie(movie.id, updates);
-      
-      // Show success message
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      // Clear any previous error state
+      clearErrorState();
 
-      // Optimistically update local movie state
-      setMovie(prev => prev ? { ...prev, ...updates } : null);
+      // Use the mutation directly with proper success/error handling
+      updateMovieMutation.mutate(
+        { movieId: movie.id, updates },
+        {
+          onSuccess: (updatedMovie) => {
+            // Clear any existing error state
+            clearErrorState();
+            
+            // Show success message only on successful save
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+
+            // Update local movie state with the response from server
+            setMovie(updatedMovie);
+          },
+          onError: (error) => {
+            // Clear success message if there was an error
+            setSaveSuccess(false);
+            console.error('Error updating movie:', error);
+            // Error state is already handled by updateMovieError from the hook
+          }
+        }
+      );
     } catch (error) {
       console.error('Error updating movie:', error);
     }
@@ -198,16 +223,25 @@ function MovieEditContent({ params }: MovieEditPageProps) {
             {/* Right Side - Status */}
             <div className="flex items-center space-x-4">
               {saveSuccess && (
-                <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
+                <div className="flex items-center space-x-2 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-md">
                   <Save className="w-4 h-4" />
                   <span className="text-sm font-medium">Changes saved!</span>
                 </div>
               )}
               
               {updateMovieError && (
-                <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
+                <div className="flex items-center space-x-2 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-md">
                   <X className="w-4 h-4" />
-                  <span className="text-sm font-medium">Save failed</span>
+                  <span className="text-sm font-medium">
+                    {updateMovieError.message || 'Save failed'}
+                  </span>
+                  <button
+                    onClick={clearErrorState}
+                    className="ml-2 p-1 hover:bg-red-100 dark:hover:bg-red-800/30 rounded"
+                    title="Dismiss error"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 </div>
               )}
               

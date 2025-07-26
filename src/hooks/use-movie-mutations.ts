@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidationPatterns } from '@/lib/query-keys';
-import { Movie, MovieUpdatePayload } from '@/types/movie';
+import { Movie, MovieUpdatePayload, MovieCreatePayload } from '@/types/movie';
 
 interface MovieCounts {
   total: number;
@@ -40,6 +40,10 @@ interface UpdateRatingParams {
 interface UpdateMovieParams {
   movieId: number;
   updates: MovieUpdatePayload;
+}
+
+interface CreateMovieParams {
+  movieData: MovieCreatePayload;
 }
 
 /**
@@ -105,7 +109,26 @@ async function updateMovieAction(movieId: number, updates: MovieUpdatePayload): 
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Failed to update movie: ${response.status}`);
+    throw new Error(errorData.error || `Failed to update movie: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return result.movie || result;
+}
+
+/**
+ * Create a new movie
+ */
+async function createMovieAction(movieData: MovieCreatePayload): Promise<Movie> {
+  const response = await fetch('/api/movies', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(movieData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to create movie: ${response.status}`);
   }
 
   return response.json();
@@ -370,6 +393,51 @@ export function useUpdateMovie() {
     // Always invalidate after mutation
     onSettled: (data, error, variables) => {
       queryClient.invalidateQueries({ queryKey: invalidationPatterns.movieDetail(variables.movieId) });
+      queryClient.invalidateQueries({ queryKey: invalidationPatterns.movieLists() });
+      queryClient.invalidateQueries({ queryKey: invalidationPatterns.movieCounts() });
+    },
+  });
+}
+
+/**
+ * Hook for creating a new movie with cache invalidation
+ */
+export function useCreateMovie() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ movieData }: CreateMovieParams) => createMovieAction(movieData),
+    
+    // Optimistic update for counts only (we don't know the ID yet)
+    onMutate: async () => {
+      // Cancel outgoing refetches for counts
+      await queryClient.cancelQueries({ queryKey: invalidationPatterns.movieCounts() });
+
+      // Snapshot previous counts
+      const previousCounts = queryClient.getQueryData(invalidationPatterns.movieCounts());
+
+      // Optimistically update total count
+      queryClient.setQueryData(invalidationPatterns.movieCounts(), (old: MovieCounts | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          total: old.total + 1,
+        };
+      });
+
+      return { previousCounts };
+    },
+
+    // Rollback on error
+    onError: (err, variables, context) => {
+      if (context?.previousCounts) {
+        queryClient.setQueryData(invalidationPatterns.movieCounts(), context.previousCounts);
+      }
+    },
+
+    // Always invalidate after mutation to ensure fresh data
+    onSettled: () => {
+      // Invalidate all movie-related queries since a new movie was created
       queryClient.invalidateQueries({ queryKey: invalidationPatterns.movieLists() });
       queryClient.invalidateQueries({ queryKey: invalidationPatterns.movieCounts() });
     },

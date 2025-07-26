@@ -1,34 +1,59 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import Image from 'next/image';
-import { Movie, MovieUpdatePayload } from '@/types/movie';
+import { Movie, MovieUpdatePayload, MovieCreatePayload } from '@/types/movie';
 
 interface MovieEditFormProps {
-  movie: Movie;
-  onSave: (updates: MovieUpdatePayload) => void;
+  movie?: Movie; // Made optional for creation mode
+  onSave?: (updates: MovieUpdatePayload) => void; // Made optional for creation mode
+  onCreate?: (movieData: MovieCreatePayload) => void; // New prop for creation
   onCancel: () => void;
   isLoading?: boolean;
   disabled?: boolean;
+  mode?: 'edit' | 'create'; // New prop to specify mode
+  onCreateSuccess?: () => void; // Callback for successful creation
+}
+
+// Add ref interface for external access to resetForm
+export interface MovieEditFormRef {
+  resetForm: () => void;
 }
 
 /**
- * Simple Movie Edit Form Component
- * Basic form with minimal complexity
+ * Movie Edit/Create Form Component
+ * Supports both editing existing movies and creating new ones
  */
-export function MovieEditForm({
+export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
   movie,
   onSave,
+  onCreate,
   onCancel,
   isLoading = false,
   disabled = false,
-}: MovieEditFormProps) {
-  const [formData, setFormData] = useState({
+  mode = movie ? 'edit' : 'create',
+  onCreateSuccess,
+}, ref) => {
+  // Default form data for creation mode
+  const getDefaultFormData = () => ({
     title: '',
     description: '',
     code: '',
-    publishedAt: '',
+    publishedAt: new Date().toISOString().split('T')[0], // Today's date
     coverUrl: '',
     videoUrl: '',
+    rating: 5, // Default rating
   });
+
+  const [formData, setFormData] = useState(
+    mode === 'create' ? getDefaultFormData() : {
+      title: movie?.title || '',
+      description: movie?.description || '',
+      code: movie?.code || '',
+      publishedAt: movie?.publishedAt || '',
+      coverUrl: movie?.coverUrl || '',
+      videoUrl: movie?.videoUrl || '',
+      rating: movie?.rating || 5,
+    }
+  );
 
   const [isDirty, setIsDirty] = useState(false);
   const [showImagePreview, setShowImagePreview] = useState(false);
@@ -37,38 +62,61 @@ export function MovieEditForm({
 
   // Initialize form data
   useEffect(() => {
-    const initialData = {
-      title: movie.title || '',
-      description: movie.description || '',
-      code: movie.code || '',
-      publishedAt: movie.publishedAt || '',
-      coverUrl: movie.coverUrl || '',
-      videoUrl: movie.videoUrl || '',
-    };
-    setFormData(initialData);
-    setIsDirty(false);
-  }, [movie]);
-
-  // Handle input changes
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => {
-      const newData = { ...prev, [field]: value };
-      
-      // Check if form is dirty
-      const originalData = {
+    if (mode === 'edit' && movie) {
+      const initialData = {
         title: movie.title || '',
         description: movie.description || '',
         code: movie.code || '',
         publishedAt: movie.publishedAt || '',
         coverUrl: movie.coverUrl || '',
         videoUrl: movie.videoUrl || '',
+        rating: movie.rating || 5,
       };
+      setFormData(initialData);
+      setIsDirty(false);
+    } else if (mode === 'create') {
+      // Reset to defaults for creation mode
+      setFormData(getDefaultFormData());
+      setIsDirty(false);
+    }
+  }, [movie, mode]);
+
+  // Reset form after successful creation
+  const resetForm = () => {
+    setFormData(getDefaultFormData());
+    setIsDirty(false);
+    setShowImagePreview(false);
+    setImageError(false);
+  };
+
+  // Handle input changes
+  const handleChange = (field: string, value: string | number) => {
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
       
-      const dirty = Object.keys(newData).some(key => 
-        newData[key as keyof typeof newData] !== originalData[key as keyof typeof originalData]
-      );
-      
-      setIsDirty(dirty);
+      // Check if form is dirty
+      if (mode === 'create') {
+        // In create mode, form is dirty if any required field has content
+        const hasContent = newData.title.trim() || newData.code.trim() || 
+                          newData.videoUrl.trim() || newData.coverUrl.trim();
+        setIsDirty(!!hasContent);
+      } else if (mode === 'edit' && movie) {
+        // In edit mode, check against original values
+        const originalData = {
+          title: movie.title || '',
+          description: movie.description || '',
+          code: movie.code || '',
+          publishedAt: movie.publishedAt || '',
+          coverUrl: movie.coverUrl || '',
+          videoUrl: movie.videoUrl || '',
+          rating: movie.rating || 5,
+        };
+        
+        const dirty = Object.keys(newData).some(key => 
+          newData[key as keyof typeof newData] !== originalData[key as keyof typeof originalData]
+        );
+        setIsDirty(dirty);
+      }
       return newData;
     });
   };
@@ -77,17 +125,47 @@ export function MovieEditForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const updates: MovieUpdatePayload = {};
-    
-    if (formData.title !== (movie.title || '')) updates.title = formData.title;
-    if (formData.description !== (movie.description || '')) updates.description = formData.description;
-    if (formData.code !== (movie.code || '')) updates.code = formData.code;
-    if (formData.publishedAt !== (movie.publishedAt || '')) updates.publishedAt = formData.publishedAt;
-    if (formData.coverUrl !== (movie.coverUrl || '')) updates.coverUrl = formData.coverUrl;
-    if (formData.videoUrl !== (movie.videoUrl || '')) updates.videoUrl = formData.videoUrl;
+    if (mode === 'create') {
+      // Create mode: prepare creation payload
+      if (onCreate) {
+        const movieData: MovieCreatePayload = {
+          title: formData.title.trim(),
+          code: formData.code.trim(),
+          videoUrl: formData.videoUrl.trim(),
+          coverUrl: formData.coverUrl.trim(),
+          description: formData.description.trim() || undefined,
+          publishedAt: formData.publishedAt || undefined,
+          rating: formData.rating,
+        };
+        onCreate(movieData);
+        
+        // Reset form after creation (will be called again after successful API call)
+        if (onCreateSuccess) {
+          onCreateSuccess();
+        }
+        resetForm();
+      }
+    } else {
+      // Edit mode: prepare update payload
+      if (movie && onSave) {
+        const updates: MovieUpdatePayload = {};
+        
+        if (formData.title !== (movie.title || '')) updates.title = formData.title;
+        if (formData.description !== (movie.description || '')) updates.description = formData.description;
+        if (formData.code !== (movie.code || '')) updates.code = formData.code;
+        if (formData.publishedAt !== (movie.publishedAt || '')) updates.publishedAt = formData.publishedAt;
+        if (formData.coverUrl !== (movie.coverUrl || '')) updates.coverUrl = formData.coverUrl;
+        if (formData.videoUrl !== (movie.videoUrl || '')) updates.videoUrl = formData.videoUrl;
 
-    onSave(updates);
+        onSave(updates);
+      }
+    }
   };
+
+  // Expose resetForm method to parent components
+  useImperativeHandle(ref, () => ({
+    resetForm,
+  }));
 
   const isFormDisabled = disabled || isLoading;
 
@@ -96,7 +174,7 @@ export function MovieEditForm({
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            Edit Movie Details
+            {mode === 'create' ? 'Create New Movie' : 'Edit Movie Details'}
           </h2>
           
           {/* Movie Code - Moved to top */}
@@ -150,19 +228,42 @@ export function MovieEditForm({
             />
           </div>
 
-          {/* Published Date */}
-          <div className="mb-4">
-            <label htmlFor="publishedAt" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Published Date
-            </label>
-            <input
-              id="publishedAt"
-              type="date"
-              value={formData.publishedAt}
-              onChange={(e) => handleChange('publishedAt', e.target.value)}
-              disabled={isFormDisabled}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white"
-            />
+          {/* Published Date and Rating - Side by Side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {/* Published Date */}
+            <div>
+              <label htmlFor="publishedAt" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Published Date
+              </label>
+              <input
+                id="publishedAt"
+                type="date"
+                value={formData.publishedAt}
+                onChange={(e) => handleChange('publishedAt', e.target.value)}
+                disabled={isFormDisabled}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white"
+              />
+            </div>
+
+            {/* Rating */}
+            <div>
+              <label htmlFor="rating" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Rating (1-10)
+              </label>
+              <select
+                id="rating"
+                value={formData.rating}
+                onChange={(e) => handleChange('rating', parseInt(e.target.value))}
+                disabled={isFormDisabled}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white"
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(rating => (
+                  <option key={rating} value={rating}>
+                    {rating} {rating === 5 ? '(Default)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Cover URL with Preview */}
@@ -294,7 +395,7 @@ export function MovieEditForm({
                 {isLoading && (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                 )}
-                Save Changes
+                {mode === 'create' ? 'Create Movie' : 'Save Changes'}
               </button>
             </div>
           </div>
@@ -302,4 +403,6 @@ export function MovieEditForm({
       </form>
     </div>
   );
-}
+});
+
+MovieEditForm.displayName = 'MovieEditForm';

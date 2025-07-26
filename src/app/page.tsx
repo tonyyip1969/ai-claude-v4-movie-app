@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import SearchBar from '@/components/SearchBar';
 import Pagination from '@/components/Pagination';
 import ResponsiveMovieGrid from '@/components/ResponsiveMovieGrid';
 import { MovieGridSkeleton, SearchSkeleton } from '@/components/LoadingSkeleton';
-import { Film, Search as SearchIcon } from 'lucide-react';
+import { Film, Search as SearchIcon, Plus } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 import { useMovieList } from '@/hooks/use-movie-queries';
 import { useSearchResults } from '@/hooks/use-search-results';
@@ -14,7 +14,12 @@ import { useSearchResults } from '@/hooks/use-search-results';
 function HomeContent() {
   const { settings, moviesPerPage, isLoaded } = useSettings();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
+  
+  const handleCreateMovie = () => {
+    router.push('/movie/new');
+  };
   
   // Use the new search results hook that handles mutations automatically
   const { 
@@ -119,11 +124,21 @@ function HomeContent() {
               )}
             </div>
             
-            {!searchMode && (
-              <p className="text-gray-400 text-sm">
-                Page {currentPage} of {totalPages}
-              </p>
-            )}
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={handleCreateMovie}
+                className="flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="hidden sm:inline">Add Movie</span>
+              </button>
+              
+              {!searchMode && (
+                <p className="text-gray-400 text-sm">
+                  Page {currentPage} of {totalPages}
+                </p>
+              )}
+            </div>
           </div>
         )}
 

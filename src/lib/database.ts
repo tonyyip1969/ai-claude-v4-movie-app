@@ -1,4 +1,4 @@
-import { Movie } from '@/types/movie';
+import { Movie, MovieCreatePayload } from '@/types/movie';
 import Database from 'better-sqlite3';
 import path from 'path';
 import { BulkInsertResult, ValidationResult } from '@/types/import';
@@ -387,6 +387,85 @@ class MovieDatabase {
   // Close database connection
   close() {
     this.db.close();
+  }
+
+  // Create a new movie
+  createMovie(movieData: MovieCreatePayload): Movie {
+    // Set defaults
+    const rating = movieData.rating ?? 5;
+    const publishedAt = movieData.publishedAt || new Date().toISOString().split('T')[0];
+    
+    // Validation
+    const validationErrors: string[] = [];
+
+    // Required field validation
+    if (!movieData.title?.trim()) {
+      validationErrors.push('Title is required');
+    } else if (movieData.title.length > 200) {
+      validationErrors.push('Title must be 200 characters or less');
+    }
+
+    if (!movieData.code?.trim()) {
+      validationErrors.push('Movie code is required');
+    } else if (movieData.code.length < 3 || movieData.code.length > 20) {
+      validationErrors.push('Code must be between 3 and 20 characters');
+    } else if (this.checkMovieCodeExists(movieData.code)) {
+      validationErrors.push('Movie code already exists');
+    }
+
+    if (!movieData.videoUrl?.trim()) {
+      validationErrors.push('Video URL is required');
+    } else if (!this.isValidUrl(movieData.videoUrl)) {
+      validationErrors.push('Video URL must be a valid URL');
+    }
+
+    if (!movieData.coverUrl?.trim()) {
+      validationErrors.push('Cover URL is required');
+    } else if (!this.isValidUrl(movieData.coverUrl)) {
+      validationErrors.push('Cover URL must be a valid URL');
+    }
+
+    // Optional field validation
+    if (movieData.description && movieData.description.length > 1000) {
+      validationErrors.push('Description must be 1000 characters or less');
+    }
+
+    if (movieData.publishedAt && !this.isValidDate(movieData.publishedAt)) {
+      validationErrors.push('Published date must be a valid date');
+    }
+
+    if (rating < 1 || rating > 10) {
+      validationErrors.push('Rating must be between 1 and 10');
+    }
+
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors.join('; '));
+    }
+
+    // Insert the movie
+    const stmt = this.db.prepare(`
+      INSERT INTO movies (code, title, description, videoUrl, coverUrl, rating, publishedAt, isFavourite, isInWatchlist)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
+    `);
+
+    const result = stmt.run(
+      movieData.code.trim(),
+      movieData.title.trim(),
+      movieData.description?.trim() || '',
+      movieData.videoUrl.trim(),
+      movieData.coverUrl.trim(),
+      rating,
+      publishedAt
+    );
+
+    // Fetch and return the created movie
+    const createdMovie = this.getMovieById(result.lastInsertRowid as number);
+    
+    if (!createdMovie) {
+      throw new Error('Failed to create movie');
+    }
+
+    return createdMovie;
   }
 
   // Check if movie code exists

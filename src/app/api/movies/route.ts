@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { movieDB } from '@/lib/database';
+import { MovieCreatePayload } from '@/types/movie';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,72 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching movies:', error);
     return NextResponse.json(
       { error: 'Failed to fetch movies' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // Parse request body
+    const body = await request.json();
+    
+    // Validate required fields
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      );
+    }
+
+    // Extract and validate movie creation data
+    const movieData: MovieCreatePayload = {
+      title: body.title,
+      code: body.code,
+      videoUrl: body.videoUrl,
+      coverUrl: body.coverUrl,
+      description: body.description,
+      publishedAt: body.publishedAt,
+      rating: body.rating,
+    };
+
+    // Validate required fields
+    const requiredFields = ['title', 'code', 'videoUrl', 'coverUrl'];
+    const missingFields = requiredFields.filter(field => !movieData[field as keyof MovieCreatePayload]?.toString().trim());
+    
+    if (missingFields.length > 0) {
+      return NextResponse.json(
+        { error: `Missing required fields: ${missingFields.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Create the movie using the database method
+    const createdMovie = movieDB.createMovie(movieData);
+
+    // Return the created movie
+    return NextResponse.json(createdMovie, { status: 201 });
+    
+  } catch (error) {
+    console.error('Error creating movie:', error);
+    
+    // Handle validation errors from database
+    if (error instanceof Error) {
+      // Check if it's a validation error (our database throws descriptive error messages)
+      if (error.message.includes('already exists') || 
+          error.message.includes('is required') || 
+          error.message.includes('must be') ||
+          error.message.includes('cannot be empty')) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: 400 }
+        );
+      }
+    }
+    
+    // Generic server error for unexpected issues
+    return NextResponse.json(
+      { error: 'Failed to create movie' },
       { status: 500 }
     );
   }

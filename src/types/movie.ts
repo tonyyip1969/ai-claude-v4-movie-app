@@ -69,3 +69,39 @@ export interface MovieValidationErrors {
  * Helps manage different states of the edit form
  */
 export type MovieEditMode = 'editing' | 'saving' | 'saved' | 'error';
+
+/**
+ * Movie Creation Feature Types
+ * Added as part of Movie Creation Feature Implementation
+ */
+
+/**
+ * Payload interface for movie creation API requests
+ * Contains all the fields needed to create a new movie
+ */
+export interface MovieCreatePayload {
+  // Required fields
+  title: string;
+  code: string;        // REQUIRED per user request
+  videoUrl: string;
+  coverUrl: string;
+  
+  // Optional fields
+  description?: string;
+  publishedAt?: string; // Will default to today if not provided
+  rating?: number;      // Will default to 5 if not provided
+}
+
+/**
+ * Form data interface for movie creation
+ * Matches the fields needed for creating a new movie with proper typing
+ */
+export interface MovieCreateFormData {
+  title: string;
+  description: string;
+  code: string;
+  publishedAt: string;  // Will be pre-filled with today's date
+  coverUrl: string;
+  videoUrl: string;
+  rating: number;       // Will be pre-filled with 5
+}
