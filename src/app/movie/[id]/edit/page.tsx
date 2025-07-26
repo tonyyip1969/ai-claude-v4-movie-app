@@ -21,7 +21,7 @@ function MovieEditContent({ params }: MovieEditPageProps) {
   const searchParams = useSearchParams();
 
   // Use enhanced movie actions for updating
-  const { updateMovie, isMovieUpdating, updateMovieError, updateMovieMutation } = useEnhancedMovieActions();
+  const { isMovieUpdating, updateMovieError, updateMovieMutation } = useEnhancedMovieActions();
 
   // Clear error state when starting a new save attempt
   const clearErrorState = () => {
