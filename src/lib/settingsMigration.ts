@@ -57,12 +57,8 @@ export class SettingsMigration {
       }
       const settings = await response.json();
       
-      // Check if any setting differs from default
-      return Object.keys(settings).some(key => {
-        const defaultValue = this.defaultSettings[key as keyof SettingsData];
-        const currentValue = parseInt(settings[key], 10);
-        return !isNaN(currentValue) && currentValue !== defaultValue;
-      });
+      // Check if any setting exists in the database
+      return Object.keys(settings).length > 0;
     } catch (error) {
       console.error('Error checking database settings:', error);
       return false;
@@ -77,6 +73,8 @@ export class SettingsMigration {
       const serialized = {
         gridColumns: settings.gridColumns.toString(),
         gridRows: settings.gridRows.toString(),
+        sidebarCollapsed: settings.sidebarCollapsed.toString(),
+        showHeader: settings.showHeader.toString(),
       };
 
       const response = await fetch('/api/settings', {
@@ -202,6 +200,10 @@ export class SettingsMigration {
     
     if (rawSettings.sidebarCollapsed !== undefined) {
       parsed.sidebarCollapsed = rawSettings.sidebarCollapsed === 'true';
+    }
+    
+    if (rawSettings.showHeader !== undefined) {
+      parsed.showHeader = rawSettings.showHeader === 'true';
     }
     
     return parsed;

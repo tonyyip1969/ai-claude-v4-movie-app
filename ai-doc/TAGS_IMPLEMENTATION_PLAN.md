@@ -9,7 +9,7 @@ This document outlines the comprehensive implementation plan for adding a Tags f
 - **Frontend**: Next.js 14 with TypeScript, React 18, Tailwind CSS
 - **Backend**: Next.js API routes
 - **Database**: SQLite with better-sqlite3
-- **State Management**: React hooks and context
+- **State Management**: React hooks, TanStack Query for server state, React Context for UI state
 - **UI Components**: Custom components with Lucide React icons
 
 ### Current Movie Data Structure
@@ -29,7 +29,7 @@ interface Movie {
 }
 ```
 
-## Implementation Plan
+## Updated Implementation Plan
 
 ### Phase 1: Database Schema Design and Migration
 
@@ -338,7 +338,7 @@ CREATE INDEX idx_tags_name ON tags(name);
 
 ### Caching Strategy
 - Cache popular tag combinations
-- Use React Query or SWR for tag data
+- Use TanStack Query for tag data
 - Implement server-side caching for frequently accessed tag queries
 
 ### Security Considerations
