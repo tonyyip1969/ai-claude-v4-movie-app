@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
-import { Movie } from '@/types/movie';
+import { Movie, MovieListParams, SortOption } from '@/types/movie';
 
 interface MovieListResponse {
   movies: Movie[];
@@ -8,21 +8,15 @@ interface MovieListResponse {
   totalPages: number;
 }
 
-interface MovieListParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  type?: 'all' | 'favorites' | 'watchlist';
-}
-
 /**
- * Fetch movies from API with pagination support
+ * Fetch movies from API with pagination and sorting support
  */
 async function fetchMovieList({ 
   page = 1, 
   limit = 20, 
   search, 
-  type = 'all' 
+  type = 'all',
+  sortBy
 }: MovieListParams): Promise<MovieListResponse> {
   let url = '/api/movies';
   
@@ -46,6 +40,11 @@ async function fetchMovieList({
     params.append('q', search);
   }
   
+  // Add sortBy parameter if provided
+  if (sortBy) {
+    params.append('sortBy', sortBy);
+  }
+  
   const response = await fetch(`${url}?${params}`);
   
   if (!response.ok) {
@@ -56,7 +55,7 @@ async function fetchMovieList({
 }
 
 /**
- * Hook for fetching paginated movie lists with smart caching
+ * Hook for fetching paginated movie lists with smart caching and sorting
  */
 export function useMovieList(params: MovieListParams = {}) {
   return useQuery({

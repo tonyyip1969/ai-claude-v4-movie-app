@@ -54,13 +54,45 @@ class MovieDatabase {
     this.db.exec(createSettingsTable);
   }
 
-  // Get movies with pagination
-  getMovies(page: number = 1, limit: number = 20): { movies: Movie[]; total: number; totalPages: number } {
+  /**
+   * Get sort ORDER BY clause based on sortBy parameter
+   * Handles all sort options with proper null handling
+   * @private
+   */
+  private getSortOrderClause(sortBy?: string): string {
+    const validSortOptions = ['createdAt', 'publishedAt', 'title', 'rating'];
+    
+    // Validate sortBy to prevent SQL injection
+    if (sortBy && !validSortOptions.includes(sortBy)) {
+      throw new Error(`Invalid sortBy parameter: ${sortBy}`);
+    }
+    
+    switch (sortBy) {
+      case 'createdAt':
+        return 'ORDER BY createdAt DESC';
+      case 'title':
+        return 'ORDER BY LOWER(title) ASC';
+      case 'rating':
+        return 'ORDER BY COALESCE(rating, 0) DESC, LOWER(title) ASC';
+      case 'publishedAt':
+      default:
+        return 'ORDER BY publishedAt DESC';
+    }
+  }
+
+  /**
+   * Get movies with pagination and optional sorting
+   * @param page - Page number (1-indexed)
+   * @param limit - Number of movies per page
+   * @param sortBy - Sort field: 'createdAt', 'publishedAt', 'title', or 'rating'
+   */
+  getMovies(page: number = 1, limit: number = 20, sortBy?: string): { movies: Movie[]; total: number; totalPages: number } {
     const offset = (page - 1) * limit;
+    const orderClause = this.getSortOrderClause(sortBy);
     
     const movies = this.db.prepare(`
       SELECT * FROM movies 
-      ORDER BY publishedAt DESC 
+      ${orderClause}
       LIMIT ? OFFSET ?
     `).all(limit, offset) as unknown as Movie[];
     // Convert SQLite integers to booleans for isFavourite and isInWatchlist
@@ -86,14 +118,20 @@ class MovieDatabase {
     })) as Movie[];
   }
 
-  // Get favorite movies with pagination
-  getFavoriteMoviesPaginated(page: number = 1, limit: number = 20): { movies: Movie[]; total: number; totalPages: number } {
+  /**
+   * Get favorite movies with pagination and optional sorting
+   * @param page - Page number (1-indexed)
+   * @param limit - Number of movies per page
+   * @param sortBy - Sort field: 'createdAt', 'publishedAt', 'title', or 'rating'
+   */
+  getFavoriteMoviesPaginated(page: number = 1, limit: number = 20, sortBy?: string): { movies: Movie[]; total: number; totalPages: number } {
     const offset = (page - 1) * limit;
+    const orderClause = this.getSortOrderClause(sortBy);
     
     const movies = this.db.prepare(`
       SELECT * FROM movies 
       WHERE isFavourite = 1 
-      ORDER BY title 
+      ${orderClause}
       LIMIT ? OFFSET ?
     `).all(limit, offset) as unknown as Movie[];
     
@@ -122,14 +160,20 @@ class MovieDatabase {
     })) as Movie[];
   }
 
-  // Get watchlist movies with pagination
-  getWatchlistMoviesPaginated(page: number = 1, limit: number = 20): { movies: Movie[]; total: number; totalPages: number } {
+  /**
+   * Get watchlist movies with pagination and optional sorting
+   * @param page - Page number (1-indexed)
+   * @param limit - Number of movies per page
+   * @param sortBy - Sort field: 'createdAt', 'publishedAt', 'title', or 'rating'
+   */
+  getWatchlistMoviesPaginated(page: number = 1, limit: number = 20, sortBy?: string): { movies: Movie[]; total: number; totalPages: number } {
     const offset = (page - 1) * limit;
+    const orderClause = this.getSortOrderClause(sortBy);
     
     const movies = this.db.prepare(`
       SELECT * FROM movies 
       WHERE isInWatchlist = 1 
-      ORDER BY title 
+      ${orderClause}
       LIMIT ? OFFSET ?
     `).all(limit, offset) as unknown as Movie[];
     

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import SearchBar from '@/components/SearchBar';
+import SortControl from '@/components/SortControl';
 import Pagination from '@/components/Pagination';
 import ResponsiveMovieGrid from '@/components/ResponsiveMovieGrid';
 import { MovieGridSkeleton, SearchSkeleton } from '@/components/LoadingSkeleton';
@@ -10,12 +11,14 @@ import { Film, Search as SearchIcon, Plus } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 import { useMovieList } from '@/hooks/use-movie-queries';
 import { useSearchResults } from '@/hooks/use-search-results';
+import { SortOption } from '@/types/movie';
 
 function HomeContent() {
   const { settings, moviesPerPage, isLoaded } = useSettings();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState<SortOption>('publishedAt');
   
   const handleCreateMovie = () => {
     router.push('/movie/new');
@@ -30,24 +33,31 @@ function HomeContent() {
     searchResultActions
   } = useSearchResults();
 
-  // Initialize page from URL parameter
+  // Initialize page and sort from URL parameters
   useEffect(() => {
     const pageFromUrl = searchParams.get('page');
+    const sortFromUrl = searchParams.get('sortBy') as SortOption;
+    
     if (pageFromUrl) {
       const parsedPage = parseInt(pageFromUrl, 10);
       if (!isNaN(parsedPage) && parsedPage > 0) {
         setCurrentPage(parsedPage);
       }
     }
+    
+    if (sortFromUrl && ['createdAt', 'publishedAt', 'title', 'rating'].includes(sortFromUrl)) {
+      setSortBy(sortFromUrl);
+    }
   }, [searchParams]);
 
-  // Use enhanced query hooks for data fetching
+  // Use enhanced query hooks for data fetching with sorting
   const {
     data: movieData,
     isLoading: moviesLoading,
   } = useMovieList({
     page: currentPage,
     limit: moviesPerPage,
+    sortBy: sortBy,
   });
 
   // Get current data to display
@@ -61,6 +71,19 @@ function HomeContent() {
     // Update URL
     const url = new URL(window.location.href);
     url.searchParams.set('page', page.toString());
+    window.history.pushState(null, '', url.toString());
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // Handle sort change
+  const handleSortChange = useCallback((newSortBy: SortOption) => {
+    setSortBy(newSortBy);
+    setCurrentPage(1); // Reset to page 1 when sort changes
+    
+    // Update URL
+    const url = new URL(window.location.href);
+    url.searchParams.set('sortBy', newSortBy);
+    url.searchParams.set('page', '1');
     window.history.pushState(null, '', url.toString());
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -124,7 +147,15 @@ function HomeContent() {
               )}
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              {/* Sort Control - Only show when not in search mode */}
+              {!searchMode && (
+                <SortControl
+                  value={sortBy}
+                  onChange={handleSortChange}
+                />
+              )}
+              
               <button
                 onClick={handleCreateMovie}
                 className="flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-gray-900"
@@ -134,7 +165,7 @@ function HomeContent() {
               </button>
               
               {!searchMode && (
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-400 text-sm hidden md:block">
                   Page {currentPage} of {totalPages}
                 </p>
               )}

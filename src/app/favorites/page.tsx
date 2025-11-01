@@ -1,31 +1,40 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import SortControl from '@/components/SortControl';
 import Pagination from '@/components/Pagination';
 import ResponsiveMovieGrid from '@/components/ResponsiveMovieGrid';
 import { MovieGridSkeleton } from '@/components/LoadingSkeleton';
 import { Heart, HeartOff } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 import { useFavoriteMovies } from '@/hooks/use-movie-queries';
+import { SortOption } from '@/types/movie';
 
 function FavoritesContent() {
   const { settings, moviesPerPage, isLoaded } = useSettings();
   const searchParams = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState<SortOption>('publishedAt');
   
-  // Initialize page from URL parameter
+  // Initialize page and sort from URL parameters
   useEffect(() => {
     const pageFromUrl = searchParams.get('page');
+    const sortFromUrl = searchParams.get('sortBy') as SortOption;
+    
     if (pageFromUrl) {
       const parsedPage = parseInt(pageFromUrl, 10);
       if (!isNaN(parsedPage) && parsedPage > 0) {
         setCurrentPage(parsedPage);
       }
     }
+    
+    if (sortFromUrl && ['createdAt', 'publishedAt', 'title', 'rating'].includes(sortFromUrl)) {
+      setSortBy(sortFromUrl);
+    }
   }, [searchParams]);
 
-  // Use enhanced query hook for favorites
+  // Use enhanced query hook for favorites with sorting
   const {
     data: favoritesData,
     isLoading,
@@ -33,16 +42,30 @@ function FavoritesContent() {
   } = useFavoriteMovies({
     page: currentPage,
     limit: moviesPerPage,
+    sortBy: sortBy,
   });
 
   // Handle page changes
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
     // Update URL
     const url = new URL(window.location.href);
     url.searchParams.set('page', page.toString());
     window.history.pushState(null, '', url.toString());
-  };
+  }, []);
+
+  // Handle sort change
+  const handleSortChange = useCallback((newSortBy: SortOption) => {
+    setSortBy(newSortBy);
+    setCurrentPage(1); // Reset to page 1 when sort changes
+    
+    // Update URL
+    const url = new URL(window.location.href);
+    url.searchParams.set('sortBy', newSortBy);
+    url.searchParams.set('page', '1');
+    window.history.pushState(null, '', url.toString());
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   if (!isLoaded) {
     return <MovieGridSkeleton />;
@@ -86,11 +109,18 @@ function FavoritesContent() {
             </span>
           </div>
           
-          {totalPages > 1 && (
-            <p className="text-gray-400 text-sm">
-              Page {currentPage} of {totalPages}
-            </p>
-          )}
+          <div className="flex items-center space-x-3">
+            <SortControl
+              value={sortBy}
+              onChange={handleSortChange}
+            />
+            
+            {totalPages > 1 && (
+              <p className="text-gray-400 text-sm hidden md:block">
+                Page {currentPage} of {totalPages}
+              </p>
+            )}
+          </div>
         </div>
       )}
 

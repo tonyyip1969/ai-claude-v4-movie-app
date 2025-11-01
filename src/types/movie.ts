@@ -105,3 +105,31 @@ export interface MovieCreateFormData {
   videoUrl: string;
   rating: number;       // Will be pre-filled with 5
 }
+
+/**
+ * Movie Sorting Feature Types
+ * Added as part of Movie Sorting Feature Implementation
+ */
+
+/**
+ * Sort options for movie lists
+ * Defines the available fields by which movies can be sorted
+ */
+export type SortOption = 'createdAt' | 'publishedAt' | 'title' | 'rating';
+
+/**
+ * Sort order direction
+ * Note: Currently not used as each sort option has a sensible default direction
+ */
+export type SortOrder = 'asc' | 'desc';
+
+/**
+ * Parameters for movie list queries with sorting support
+ */
+export interface MovieListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: SortOption;
+  type?: 'all' | 'favorites' | 'watchlist';
+}

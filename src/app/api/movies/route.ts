@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { movieDB } from '@/lib/database';
-import { MovieCreatePayload } from '@/types/movie';
+import { MovieCreatePayload, SortOption } from '@/types/movie';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
+
+// Valid sort options for validation
+const VALID_SORT_OPTIONS: SortOption[] = ['createdAt', 'publishedAt', 'title', 'rating'];
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,8 +31,17 @@ export async function GET(request: NextRequest) {
     // Regular movie listing endpoint
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
+    const sortBy = searchParams.get('sortBy') as SortOption | null;
 
-    const result = movieDB.getMovies(page, limit);
+    // Validate sortBy parameter (whitelist approach)
+    if (sortBy && !VALID_SORT_OPTIONS.includes(sortBy)) {
+      return NextResponse.json(
+        { error: `Invalid sortBy parameter. Allowed values: ${VALID_SORT_OPTIONS.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    const result = movieDB.getMovies(page, limit, sortBy || undefined);
 
     return NextResponse.json({
       ...result,
