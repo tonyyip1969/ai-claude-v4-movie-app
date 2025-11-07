@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
-import { Movie, MovieListParams, SortOption } from '@/types/movie';
+import { Movie, MovieListParams } from '@/types/movie';
 
 interface MovieListResponse {
   movies: Movie[];
