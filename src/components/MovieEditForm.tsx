@@ -31,7 +31,6 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
   isLoading = false,
   disabled = false,
   mode = movie ? 'edit' : 'create',
-  onCreateSuccess,
 }, ref) => {
   // Default form data for creation mode
   const getDefaultFormData = () => ({
