@@ -182,7 +182,7 @@ export async function validateCodeUniqueness(
     const data = await response.json();
     
     if (data.exists) {
-      return 'Movie code must be unique';
+      return 'Movie already exists';
     }
     
     return true;

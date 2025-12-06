@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { UseFormRegister, FieldErrors, UseFormSetError, UseFormClearErrors, UseFormWatch } from 'react-hook-form';
 import { MovieFormData, validateCodeUniqueness } from '@/lib/movie-validation';
 
@@ -15,6 +15,8 @@ interface CodeInputProps {
   disabled?: boolean;
   required?: boolean;
   helpText?: string;
+  validateOnBlur?: boolean;
+  onValidationStateChange?: (isValidating: boolean, hasError: boolean) => void;
 }
 
 /**
@@ -36,23 +38,50 @@ export function CodeInput({
   disabled = false,
   required = false,
   helpText,
+  validateOnBlur = true,
+  onValidationStateChange,
 }: CodeInputProps) {
   const [isValidating, setIsValidating] = useState(false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
+  const [hasBlurred, setHasBlurred] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   
   const watchedValue = watch(name);
 
-  // Debounced uniqueness validation
+  // Notify parent of validation state changes
+  useEffect(() => {
+    if (onValidationStateChange) {
+      onValidationStateChange(isValidating, validationStatus === 'invalid');
+    }
+  }, [isValidating, validationStatus, onValidationStateChange]);
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Uniqueness validation with AbortController support
   const validateUniqueness = useCallback(async (code: string) => {
     if (!code || code.length < 3) {
       setValidationStatus('idle');
+      clearErrors(name);
       return;
     }
+
+    // Cancel any pending validation request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     setIsValidating(true);
     
     try {
-      const result = await validateCodeUniqueness(code, currentMovieId);
+      const result = await validateCodeUniqueness(code, currentMovieId, abortControllerRef.current.signal);
       
       if (result === true) {
         setValidationStatus('valid');
@@ -72,18 +101,30 @@ export function CodeInput({
     }
   }, [currentMovieId, setError, clearErrors, name]);
 
-  // Debounce the validation
+  // Validate on blur or when value changes after blur
   useEffect(() => {
     if (!watchedValue) {
       setValidationStatus('idle');
+      setHasBlurred(false);
       return;
     }
 
-    const timeoutId = setTimeout(() => {
-      validateUniqueness(watchedValue);
-    }, 500); // 500ms debounce
+    // Only validate if validateOnBlur is disabled OR user has already blurred
+    if (!validateOnBlur || hasBlurred) {
+      const timeoutId = setTimeout(() => {
+        validateUniqueness(watchedValue);
+      }, 300); // 300ms debounce for re-validation after blur
 
-    return () => clearTimeout(timeoutId);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [watchedValue, validateUniqueness, validateOnBlur, hasBlurred]);
+
+  // Handle blur event - trigger validation
+  const handleBlur = useCallback(() => {
+    setHasBlurred(true);
+    if (watchedValue && watchedValue.length >= 3) {
+      validateUniqueness(watchedValue);
+    }
   }, [watchedValue, validateUniqueness]);
 
   const error = errors[name];
@@ -105,6 +146,9 @@ export function CodeInput({
           type="text"
           placeholder={placeholder}
           disabled={disabled}
+          onBlur={handleBlur}
+          aria-describedby={error ? `${name}-error` : helpText ? `${name}-help` : undefined}
+          aria-invalid={hasError}
           className={`
             w-full px-3 py-2 pr-10 border rounded-md shadow-sm
             placeholder-gray-400 dark:placeholder-gray-500
@@ -153,14 +197,14 @@ export function CodeInput({
 
       {/* Help Text */}
       {helpText && !hasError && validationStatus !== 'valid' && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p id={`${name}-help`} className="text-sm text-gray-500 dark:text-gray-400">
           {helpText}
         </p>
       )}
 
       {/* Error Message */}
       {error && (
-        <p className="text-sm text-red-600 dark:text-red-400 flex items-center">
+        <p id={`${name}-error`} role="alert" className="text-sm text-red-600 dark:text-red-400 flex items-center">
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>

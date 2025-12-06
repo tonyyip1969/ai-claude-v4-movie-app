@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { Movie, MovieUpdatePayload, MovieCreatePayload } from '@/types/movie';
+import { validateCodeUniqueness } from '@/lib/movie-validation';
 
 interface MovieEditFormProps {
   movie?: Movie; // Made optional for creation mode
@@ -59,6 +60,22 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
+  
+  // Code validation state
+  const [isCodeValidating, setIsCodeValidating] = useState(false);
+  const [codeValidationStatus, setCodeValidationStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [hasCodeBlurred, setHasCodeBlurred] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Initialize form data
   useEffect(() => {
@@ -87,7 +104,69 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
     setIsDirty(false);
     setShowImagePreview(false);
     setImageError(false);
+    // Reset code validation state
+    setIsCodeValidating(false);
+    setCodeValidationStatus('idle');
+    setCodeError(null);
+    setHasCodeBlurred(false);
   };
+
+  // Validate code uniqueness
+  const validateCode = useCallback(async (code: string) => {
+    if (!code || code.length < 3) {
+      setCodeValidationStatus('idle');
+      setCodeError(null);
+      return;
+    }
+
+    // Cancel any pending validation request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    setIsCodeValidating(true);
+    
+    try {
+      const currentMovieId = mode === 'edit' && movie ? movie.id : 0;
+      const result = await validateCodeUniqueness(code, currentMovieId, abortControllerRef.current.signal);
+      
+      if (result === true) {
+        setCodeValidationStatus('valid');
+        setCodeError(null);
+      } else {
+        setCodeValidationStatus('invalid');
+        setCodeError(result);
+      }
+    } catch {
+      // On error, remain in idle state (fail open)
+      setCodeValidationStatus('idle');
+      setCodeError(null);
+    } finally {
+      setIsCodeValidating(false);
+    }
+  }, [mode, movie]);
+
+  // Handle code input blur - trigger validation
+  const handleCodeBlur = useCallback(() => {
+    setHasCodeBlurred(true);
+    if (formData.code && formData.code.length >= 3) {
+      validateCode(formData.code);
+    }
+  }, [formData.code, validateCode]);
+
+  // Re-validate code when it changes after blur
+  useEffect(() => {
+    if (hasCodeBlurred && formData.code && formData.code.length >= 3) {
+      const timeoutId = setTimeout(() => {
+        validateCode(formData.code);
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    } else if (!formData.code || formData.code.length < 3) {
+      setCodeValidationStatus('idle');
+      setCodeError(null);
+    }
+  }, [formData.code, hasCodeBlurred, validateCode]);
 
   // Handle input changes
   const handleChange = (field: string, value: string | number) => {
@@ -177,23 +256,75 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
             {mode === 'create' ? 'Create New Movie' : 'Edit Movie Details'}
           </h2>
           
-          {/* Movie Code - Moved to top */}
+          {/* Movie Code - With blur validation */}
           <div className="mb-4">
             <label htmlFor="code" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Movie Code <span className="text-red-500">*</span>
             </label>
-            <input
-              id="code"
-              type="text"
-              value={formData.code}
-              onChange={(e) => handleChange('code', e.target.value)}
-              placeholder="unique-movie-code"
-              disabled={isFormDisabled}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white"
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Unique identifier for the movie (3-20 characters, letters, numbers, hyphens, underscores)
-            </p>
+            <div className="relative">
+              <input
+                id="code"
+                type="text"
+                value={formData.code}
+                onChange={(e) => handleChange('code', e.target.value)}
+                onBlur={handleCodeBlur}
+                placeholder="unique-movie-code"
+                disabled={isFormDisabled}
+                aria-describedby={codeError ? 'code-error' : 'code-help'}
+                aria-invalid={!!codeError}
+                className={`w-full px-3 py-2 pr-10 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white font-mono text-sm ${
+                  codeError 
+                    ? 'border-red-300 dark:border-red-500 focus:border-red-500 focus:ring-red-500' 
+                    : codeValidationStatus === 'valid'
+                    ? 'border-green-300 dark:border-green-500 focus:border-green-500 focus:ring-green-500'
+                    : 'border-gray-300 dark:border-gray-600'
+                }`}
+              />
+              
+              {/* Status Indicator */}
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                {isCodeValidating && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                )}
+                
+                {!isCodeValidating && codeValidationStatus === 'valid' && !codeError && (
+                  <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                
+                {!isCodeValidating && (codeValidationStatus === 'invalid' || codeError) && (
+                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </div>
+            </div>
+            
+            {/* Help Text */}
+            {!codeError && codeValidationStatus !== 'valid' && !isCodeValidating && (
+              <p id="code-help" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Unique identifier for the movie (3-20 characters, letters, numbers, hyphens, underscores)
+              </p>
+            )}
+            
+            {/* Error Message */}
+            {codeError && (
+              <p id="code-error" role="alert" className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {codeError}
+              </p>
+            )}
+            
+            {/* Loading indicator */}
+            {isCodeValidating && (
+              <p className="mt-1 text-sm text-blue-600 dark:text-blue-400 flex items-center">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500 mr-2"></div>
+                Checking availability...
+              </p>
+            )}
           </div>
 
           {/* Title */}
@@ -389,7 +520,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
               
               <button
                 type="submit"
-                disabled={isFormDisabled || !isDirty}
+                disabled={isFormDisabled || !isDirty || isCodeValidating || !!codeError}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 {isLoading && (
