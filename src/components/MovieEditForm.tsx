@@ -218,11 +218,8 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
         };
         onCreate(movieData);
         
-        // Reset form after creation (will be called again after successful API call)
-        if (onCreateSuccess) {
-          onCreateSuccess();
-        }
-        resetForm();
+        // Note: Form reset should be triggered by parent component on success
+        // via the ref's resetForm method to preserve values on error
       }
     } else {
       // Edit mode: prepare update payload
@@ -266,13 +263,13 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
                 id="code"
                 type="text"
                 value={formData.code}
-                onChange={(e) => handleChange('code', e.target.value)}
+                onChange={(e) => handleChange('code', e.target.value.toUpperCase())}
                 onBlur={handleCodeBlur}
-                placeholder="unique-movie-code"
+                placeholder="UNIQUE-MOVIE-CODE"
                 disabled={isFormDisabled}
                 aria-describedby={codeError ? 'code-error' : 'code-help'}
                 aria-invalid={!!codeError}
-                className={`w-full px-3 py-2 pr-10 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white font-mono text-sm ${
+                className={`w-full px-3 py-2 pr-10 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white font-mono text-sm uppercase ${
                   codeError 
                     ? 'border-red-300 dark:border-red-500 focus:border-red-500 focus:ring-red-500' 
                     : codeValidationStatus === 'valid'
