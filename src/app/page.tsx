@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import SearchBar from '@/components/SearchBar';
 import SortControl from '@/components/SortControl';
+import TagFilterControl from '@/components/TagFilterControl';
 import Pagination from '@/components/Pagination';
 import ResponsiveMovieGrid from '@/components/ResponsiveMovieGrid';
 import { MovieGridSkeleton, SearchSkeleton } from '@/components/LoadingSkeleton';
@@ -19,16 +20,17 @@ function HomeContent() {
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortOption>('publishedAt');
-  
+  const [selectedTag, setSelectedTag] = useState<string | undefined>(undefined);
+
   const handleCreateMovie = () => {
     router.push('/movie/new');
   };
-  
+
   // Use the new search results hook that handles mutations automatically
-  const { 
-    searchResults, 
-    searchMode, 
-    handleSearchResults, 
+  const {
+    searchResults,
+    searchMode,
+    handleSearchResults,
     handleSearchClear,
     searchResultActions
   } = useSearchResults();
@@ -37,20 +39,27 @@ function HomeContent() {
   useEffect(() => {
     const pageFromUrl = searchParams.get('page');
     const sortFromUrl = searchParams.get('sortBy') as SortOption;
-    
+    const tagFromUrl = searchParams.get('tag');
+
     if (pageFromUrl) {
       const parsedPage = parseInt(pageFromUrl, 10);
       if (!isNaN(parsedPage) && parsedPage > 0) {
         setCurrentPage(parsedPage);
       }
     }
-    
+
     if (sortFromUrl && ['createdAt', 'publishedAt', 'title', 'rating'].includes(sortFromUrl)) {
       setSortBy(sortFromUrl);
     }
+
+    if (tagFromUrl) {
+      setSelectedTag(tagFromUrl);
+    } else {
+      setSelectedTag(undefined);
+    }
   }, [searchParams]);
 
-  // Use enhanced query hooks for data fetching with sorting
+  // Use enhanced query hooks for data fetching with sorting and filtering
   const {
     data: movieData,
     isLoading: moviesLoading,
@@ -58,6 +67,7 @@ function HomeContent() {
     page: currentPage,
     limit: moviesPerPage,
     sortBy: sortBy,
+    tag: selectedTag,
   });
 
   // Get current data to display
@@ -68,28 +78,38 @@ function HomeContent() {
   // Handle page change
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
-    // Update URL
-    const url = new URL(window.location.href);
-    url.searchParams.set('page', page.toString());
-    window.history.pushState(null, '', url.toString());
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateUrl({ page: page.toString() });
   }, []);
 
   // Handle sort change
   const handleSortChange = useCallback((newSortBy: SortOption) => {
     setSortBy(newSortBy);
     setCurrentPage(1); // Reset to page 1 when sort changes
-    
-    // Update URL
-    const url = new URL(window.location.href);
-    url.searchParams.set('sortBy', newSortBy);
-    url.searchParams.set('page', '1');
-    window.history.pushState(null, '', url.toString());
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateUrl({ sortBy: newSortBy, page: '1' });
   }, []);
 
-  // Note: Action handlers are not needed when using enhanced actions
-  // The MovieCard will handle actions through the useEnhancedMovieActions hook
+  // Handle tag selection
+  const handleTagSelect = useCallback((tag: string | undefined) => {
+    setSelectedTag(tag);
+    setCurrentPage(1);
+    updateUrl({ tag: tag || null, page: '1' });
+  }, []);
+
+  // Helper to update URL
+  const updateUrl = (params: Record<string, string | null>) => {
+    const url = new URL(window.location.href);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === null) {
+        url.searchParams.delete(key);
+      } else {
+        url.searchParams.set(key, value);
+      }
+    });
+    window.history.pushState(null, '', url.toString());
+    if (params.page !== undefined) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   const displayMovies = searchMode ? searchResults : movies;
   const showPagination = !searchMode && !loading;
@@ -112,9 +132,9 @@ function HomeContent() {
               <span className="text-gradient">Movies</span>
             </h1>
           </div>
-          
+
           <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
-            Explore our vast collection of movies with stunning visuals and immersive experiences. 
+            Explore our vast collection of movies with stunning visuals and immersive experiences.
             Find your next favorite film in our carefully curated selection.
           </p>
         </div>
@@ -134,11 +154,11 @@ function HomeContent() {
       <div className="space-y-6">
         {/* Section Header */}
         {!loading && (
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
               <SearchIcon className="w-6 h-6 text-primary-400" />
               <h2 className="text-2xl font-bold text-white">
-                {searchMode ? 'Search Results' : 'Latest Movies'}
+                {searchMode ? 'Search Results' : selectedTag ? `Movies tagged "${selectedTag}"` : 'Latest Movies'}
               </h2>
               {searchMode && (
                 <span className="bg-primary-500/20 text-primary-300 px-3 py-1 rounded-full text-sm">
@@ -146,16 +166,22 @@ function HomeContent() {
                 </span>
               )}
             </div>
-            
-            <div className="flex items-center space-x-3">
-              {/* Sort Control - Only show when not in search mode */}
+
+            <div className="flex items-center space-x-3 flex-wrap">
+              {/* Sort and Filter Controls - Only show when not in search mode */}
               {!searchMode && (
-                <SortControl
-                  value={sortBy}
-                  onChange={handleSortChange}
-                />
+                <>
+                  <TagFilterControl
+                    selectedTag={selectedTag}
+                    onTagSelect={handleTagSelect}
+                  />
+                  <SortControl
+                    value={sortBy}
+                    onChange={handleSortChange}
+                  />
+                </>
               )}
-              
+
               <button
                 onClick={handleCreateMovie}
                 className="flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-gray-900"
@@ -163,7 +189,7 @@ function HomeContent() {
                 <Plus className="w-5 h-5" />
                 <span className="hidden sm:inline">Add Movie</span>
               </button>
-              
+
               {!searchMode && (
                 <p className="text-gray-400 text-sm hidden md:block">
                   Page {currentPage} of {totalPages}
@@ -175,7 +201,7 @@ function HomeContent() {
 
         {/* Loading State */}
         {loading && !searchMode && <MovieGridSkeleton />}
-        
+
         {/* Search Loading State */}
         {loading && searchMode && <SearchSkeleton />}
 
@@ -227,7 +253,9 @@ function HomeContent() {
             </div>
             <h3 className="text-xl font-semibold text-gray-300">No movies available</h3>
             <p className="text-gray-500 max-w-md mx-auto">
-              There are no movies in the database yet. Please check back later.
+              {selectedTag
+                ? `No movies found with tag "${selectedTag}".`
+                : 'There are no movies in the database yet. Please check back later.'}
             </p>
           </div>
         )}

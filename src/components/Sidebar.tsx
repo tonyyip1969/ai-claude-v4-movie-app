@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Heart, Shuffle, Menu, X, Film, Clock, Settings, Upload } from 'lucide-react';
+import { Home, Heart, Shuffle, Menu, X, Film, Clock, Settings, Upload, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useMovieCounts } from '@/hooks/use-movie-counts';
@@ -15,6 +15,7 @@ const navigation = [
   { name: 'Watch List', href: '/watchlist', icon: Clock },
   { name: 'Random', href: '/random', icon: Shuffle },
   { name: 'Import', href: '/import', icon: Upload },
+  { name: 'Tags', href: '/tags', icon: Tag },
 ];
 
 const bottomNavigation = [
@@ -28,7 +29,7 @@ interface SidebarProps {
 export default function Sidebar({ className }: SidebarProps) {
   const { isCollapsed, isMobileOpen, setIsMobileOpen, toggleSidebar } = useSidebar();
   const pathname = usePathname();
-  
+
   // Use optimized movie counts hook
   const { data: counts, isLoading: isCountsLoading } = useMovieCounts();
 
@@ -70,7 +71,7 @@ export default function Sidebar({ className }: SidebarProps) {
             </div>
           )}
         </div>
-        
+
         {/* Mobile close button */}
         <button
           onClick={() => setIsMobileOpen(false)}
@@ -85,7 +86,7 @@ export default function Sidebar({ className }: SidebarProps) {
         {navigation.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
-          
+
           // Get count for this navigation item
           let count = 0;
           if (item.href === '/favorites') {
@@ -93,15 +94,15 @@ export default function Sidebar({ className }: SidebarProps) {
           } else if (item.href === '/watchlist') {
             count = movieCounts.watchlist;
           }
-          
+
           return (
             <Link
               key={item.name}
               href={item.href}
               className={cn(
                 "flex items-center px-4 py-3 rounded-lg transition-all duration-300 group",
-                isActive 
-                  ? "bg-gradient-to-r from-primary-500/20 to-accent-500/20 border border-primary-500/30 text-white" 
+                isActive
+                  ? "bg-gradient-to-r from-primary-500/20 to-accent-500/20 border border-primary-500/30 text-white"
                   : "text-gray-400 hover:text-white hover:bg-gray-800/50",
                 isCollapsed && !isMobileOpen ? "justify-center" : "justify-between"
               )}
@@ -118,7 +119,7 @@ export default function Sidebar({ className }: SidebarProps) {
                   <span className="font-medium">{item.name}</span>
                 )}
               </div>
-              
+
               {/* Count badge and active indicator */}
               {(!isCollapsed || isMobileOpen) && (
                 <div className="flex items-center space-x-2">
@@ -126,8 +127,8 @@ export default function Sidebar({ className }: SidebarProps) {
                   {count > 0 && (
                     <span className={cn(
                       "px-2 py-1 text-xs font-semibold rounded-full transition-colors",
-                      isActive 
-                        ? "bg-primary-500/30 text-primary-300" 
+                      isActive
+                        ? "bg-primary-500/30 text-primary-300"
                         : "bg-gray-700 text-gray-300 group-hover:bg-gray-600"
                     )}>
                       {count}
@@ -149,15 +150,15 @@ export default function Sidebar({ className }: SidebarProps) {
         {bottomNavigation.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
-          
+
           return (
             <Link
               key={item.name}
               href={item.href}
               className={cn(
                 "flex items-center px-4 py-3 rounded-lg transition-all duration-300 group",
-                isActive 
-                  ? "bg-gradient-to-r from-primary-500/20 to-accent-500/20 border border-primary-500/30 text-white" 
+                isActive
+                  ? "bg-gradient-to-r from-primary-500/20 to-accent-500/20 border border-primary-500/30 text-white"
                   : "text-gray-400 hover:text-white hover:bg-gray-800/50",
                 isCollapsed && !isMobileOpen ? "justify-center" : "justify-start"
               )}
@@ -189,7 +190,7 @@ export default function Sidebar({ className }: SidebarProps) {
             </p>
           </div>
         )}
-        
+
         {/* Collapse toggle button (desktop only) */}
         <div className="hidden lg:block mt-4">
           <button

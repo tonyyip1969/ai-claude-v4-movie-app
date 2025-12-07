@@ -10,7 +10,7 @@ export async function GET(
 ) {
   try {
     const id = parseInt(params.id);
-    
+
     if (isNaN(id)) {
       return NextResponse.json(
         { error: 'Invalid movie ID' },
@@ -19,7 +19,7 @@ export async function GET(
     }
 
     const movie = movieDB.getMovieById(id);
-    
+
     if (!movie) {
       return NextResponse.json(
         { error: 'Movie not found' },
@@ -43,7 +43,7 @@ export async function PATCH(
 ) {
   try {
     const id = parseInt(params.id);
-    
+
     if (isNaN(id)) {
       return NextResponse.json(
         { error: 'Invalid movie ID' },
@@ -52,7 +52,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    
+
     if (body.action === 'toggleFavorite') {
       const movie = movieDB.getMovieById(id);
       if (!movie) {
@@ -61,9 +61,9 @@ export async function PATCH(
           { status: 404 }
         );
       }
-      
+
       const newStatus = movieDB.toggleFavorite(id);
-      return NextResponse.json({ 
+      return NextResponse.json({
         isFavourite: newStatus,
         message: `Movie ${newStatus ? 'added to' : 'removed from'} favorites`
       });
@@ -77,9 +77,9 @@ export async function PATCH(
           { status: 404 }
         );
       }
-      
+
       const newStatus = movieDB.toggleWatchlist(id);
-      return NextResponse.json({ 
+      return NextResponse.json({
         isInWatchlist: newStatus,
         message: `Movie ${newStatus ? 'added to' : 'removed from'} watchlist`
       });
@@ -87,7 +87,7 @@ export async function PATCH(
 
     if (body.action === 'updateRating') {
       const { rating } = body;
-      
+
       if (!rating || typeof rating !== 'number' || rating < 1 || rating > 10) {
         return NextResponse.json(
           { error: 'Rating must be a number between 1 and 10' },
@@ -106,7 +106,7 @@ export async function PATCH(
       try {
         const success = movieDB.updateRating(id, rating);
         if (success) {
-          return NextResponse.json({ 
+          return NextResponse.json({
             rating,
             message: `Movie rating updated to ${rating}/10`
           });
@@ -130,7 +130,7 @@ export async function PATCH(
 
     if (body.action === 'updateMovie') {
       const { updates } = body;
-      
+
       // Validate that updates object exists and has valid fields
       if (!updates || typeof updates !== 'object') {
         return NextResponse.json(
@@ -140,10 +140,10 @@ export async function PATCH(
       }
 
       // Validate allowed fields
-      const allowedFields = ['title', 'description', 'code', 'publishedAt', 'coverUrl', 'videoUrl'];
+      const allowedFields = ['title', 'description', 'code', 'publishedAt', 'coverUrl', 'videoUrl', 'tags'];
       const updateKeys = Object.keys(updates);
       const invalidFields = updateKeys.filter(key => !allowedFields.includes(key));
-      
+
       if (invalidFields.length > 0) {
         return NextResponse.json(
           { error: `Invalid fields: ${invalidFields.join(', ')}. Allowed fields: ${allowedFields.join(', ')}` },
@@ -172,7 +172,7 @@ export async function PATCH(
         if (success) {
           // Return the updated movie
           const updatedMovie = movieDB.getMovieById(id);
-          return NextResponse.json({ 
+          return NextResponse.json({
             movie: updatedMovie,
             message: 'Movie updated successfully'
           });

@@ -21,15 +21,15 @@ interface MovieCardProps {
   useEnhancedActions?: boolean;
 }
 
-export default function MovieCard({ 
-  movie, 
-  onFavoriteToggle, 
-  onWatchlistToggle, 
-  onRatingUpdate, 
-  className, 
-  currentPage, 
+export default function MovieCard({
+  movie,
+  onFavoriteToggle,
+  onWatchlistToggle,
+  onRatingUpdate,
+  className,
+  currentPage,
   pageContext = 'home',
-  useEnhancedActions = false 
+  useEnhancedActions = false
 }: MovieCardProps) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -40,7 +40,7 @@ export default function MovieCard({
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Prioritize callback props (search mode) over enhanced actions
     if (onFavoriteToggle) {
       onFavoriteToggle(movie.id);
@@ -52,7 +52,7 @@ export default function MovieCard({
   const handleWatchlistClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Prioritize callback props (search mode) over enhanced actions
     if (onWatchlistToggle) {
       onWatchlistToggle(movie.id);
@@ -104,7 +104,7 @@ export default function MovieCard({
           {imageLoading && (
             <div className="absolute inset-0 skeleton rounded-lg" />
           )}
-          
+
           {!imageError ? (
             <Image
               src={movie.coverUrl}
@@ -135,7 +135,7 @@ export default function MovieCard({
 
           {/* Overlay gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          
+
           {/* Play button overlay */}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100">
             <div className="bg-black/50 backdrop-blur-sm rounded-full p-4 border border-white/20">
@@ -170,8 +170,8 @@ export default function MovieCard({
             <Heart
               className={cn(
                 "w-4 h-4 transition-colors duration-300",
-                movie.isFavourite 
-                  ? "text-red-500 fill-red-500" 
+                movie.isFavourite
+                  ? "text-red-500 fill-red-500"
                   : "text-white hover:text-red-400"
               )}
             />
@@ -196,19 +196,19 @@ export default function MovieCard({
             <Clock
               className={cn(
                 "w-4 h-4 transition-colors duration-300",
-                movie.isInWatchlist 
-                  ? "text-blue-500 fill-blue-500" 
+                movie.isInWatchlist
+                  ? "text-blue-500 fill-blue-500"
                   : "text-white hover:text-blue-400"
               )}
             />
           )}
-        </button>        
+        </button>
       </div>
 
       {/* Content - Not clickable for navigation */}
       <div className="p-3">
         {/* Rating and year - Interactive rating, non-clickable year */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <RatingComponent
             rating={movie.rating}
             onRatingChange={handleRatingChange}
@@ -220,6 +220,22 @@ export default function MovieCard({
             {new Date(movie.publishedAt).getFullYear()}
           </span>
         </div>
+
+        {/* Tags */}
+        {movie.tags && movie.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {movie.tags.slice(0, 3).map(tag => (
+              <span key={tag} className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded-sm">
+                {tag}
+              </span>
+            ))}
+            {movie.tags.length > 3 && (
+              <span className="text-[10px] text-gray-500 px-1">
+                +{movie.tags.length - 3}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

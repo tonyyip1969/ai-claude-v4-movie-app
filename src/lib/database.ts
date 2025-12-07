@@ -3,6 +3,13 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { BulkInsertResult, ValidationResult } from '@/types/import';
 
+// Tag interface matching database structure
+export interface Tag {
+  id: number;
+  name: string;
+  count?: number; // Usage count
+}
+
 class MovieDatabase {
   private db: Database.Database;
 
@@ -32,15 +39,34 @@ class MovieDatabase {
         publishedAt DATETIME
       )
     `;
-    
+
     this.db.exec(createMoviesTable);
-    
+
     // Add isInWatchlist column if it doesn't exist (for existing databases)
     try {
       this.db.exec(`ALTER TABLE movies ADD COLUMN isInWatchlist BOOLEAN DEFAULT FALSE`);
     } catch {
       // Column already exists or other error, ignore
     }
+
+    // Create tags table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL
+      )
+    `);
+
+    // Create movie_tags junction table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS movie_tags (
+        movie_id INTEGER,
+        tag_id INTEGER,
+        PRIMARY KEY (movie_id, tag_id),
+        FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+      )
+    `);
 
     // Create settings table
     const createSettingsTable = `
@@ -50,7 +76,7 @@ class MovieDatabase {
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    
+
     this.db.exec(createSettingsTable);
   }
 
@@ -61,12 +87,12 @@ class MovieDatabase {
    */
   private getSortOrderClause(sortBy?: string): string {
     const validSortOptions = ['createdAt', 'publishedAt', 'title', 'rating'];
-    
+
     // Validate sortBy to prevent SQL injection
     if (sortBy && !validSortOptions.includes(sortBy)) {
       throw new Error(`Invalid sortBy parameter: ${sortBy}`);
     }
-    
+
     switch (sortBy) {
       case 'createdAt':
         return 'ORDER BY createdAt DESC';
@@ -81,206 +107,357 @@ class MovieDatabase {
   }
 
   /**
-   * Get movies with pagination and optional sorting
+   * Helper to fetch tags for a list of movies
+   */
+  private attachTagsToMovies(movies: Movie[]): Movie[] {
+    const transaction = this.db.transaction((movies: Movie[]) => {
+      // Prepare statement for efficiency
+      const stmt = this.db.prepare(`
+        SELECT t.name 
+        FROM tags t 
+        JOIN movie_tags mt ON t.id = mt.tag_id 
+        WHERE mt.movie_id = ?
+        ORDER BY t.name
+      `);
+
+      return movies.map(movie => {
+        const tags = stmt.all(movie.id) as { name: string }[];
+        return {
+          ...movie,
+          tags: tags.map(t => t.name)
+        };
+      });
+    });
+    return transaction(movies);
+  }
+
+  /**
+   * Helper to fetch tags for a single movie
+   */
+  private getTagsForMovie(movieId: number): string[] {
+    const tags = this.db.prepare(`
+        SELECT t.name 
+        FROM tags t 
+        JOIN movie_tags mt ON t.id = mt.tag_id 
+        WHERE mt.movie_id = ?
+        ORDER BY t.name
+      `).all(movieId) as { name: string }[];
+    return tags.map(t => t.name);
+  }
+
+  /**
+   * Add tags to a movie
+   */
+  private addTagsToMovie(movieId: number, tags: string[]) {
+    if (!tags || tags.length === 0) return;
+
+    const insertTag = this.db.prepare('INSERT OR IGNORE INTO tags (name) VALUES (?)');
+    const getTagId = this.db.prepare('SELECT id FROM tags WHERE name = ?');
+    const linkTag = this.db.prepare('INSERT OR IGNORE INTO movie_tags (movie_id, tag_id) VALUES (?, ?)');
+
+    const transaction = this.db.transaction((tags: string[]) => {
+      for (const tag of tags) {
+        const trimmedTag = tag.trim();
+        if (!trimmedTag) continue;
+
+        insertTag.run(trimmedTag);
+        const tagIdResult = getTagId.get(trimmedTag) as { id: number };
+        if (tagIdResult) {
+          linkTag.run(movieId, tagIdResult.id);
+        }
+      }
+    });
+
+    transaction(tags);
+  }
+
+  /**
+   * Remove all tags from a movie
+   */
+  private removeTagsFromMovie(movieId: number) {
+    this.db.prepare('DELETE FROM movie_tags WHERE movie_id = ?').run(movieId);
+  }
+
+  /**
+   * Update tags for a movie (replace all)
+   */
+  private updateMovieTags(movieId: number, tags: string[]) {
+    const transaction = this.db.transaction(() => {
+      this.removeTagsFromMovie(movieId);
+      this.addTagsToMovie(movieId, tags);
+    });
+    transaction();
+  }
+
+  /**
+   * Get movies with pagination, optional sorting, and filtering
    * @param page - Page number (1-indexed)
    * @param limit - Number of movies per page
-   * @param sortBy - Sort field: 'createdAt', 'publishedAt', 'title', or 'rating'
+   * @param sortBy - Sort field
+   * @param tag - Filter by tag name
    */
-  getMovies(page: number = 1, limit: number = 20, sortBy?: string): { movies: Movie[]; total: number; totalPages: number } {
+  getMovies(page: number = 1, limit: number = 20, sortBy?: string, tag?: string): { movies: Movie[]; total: number; totalPages: number } {
     const offset = (page - 1) * limit;
     const orderClause = this.getSortOrderClause(sortBy);
-    
-    const movies = this.db.prepare(`
-      SELECT * FROM movies 
-      ${orderClause}
-      LIMIT ? OFFSET ?
-    `).all(limit, offset) as unknown as Movie[];
-    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
-    const convertedMovies = movies.map(movie => ({
+
+    let queryObj;
+    let countQuery;
+    let params: any[] = [];
+
+    if (tag) {
+      // Filter by tag
+      const tagFilter = `
+         JOIN movie_tags mt ON movies.id = mt.movie_id
+         JOIN tags t ON mt.tag_id = t.id
+         WHERE t.name = ?
+       `;
+
+      queryObj = this.db.prepare(`
+        SELECT movies.* FROM movies 
+        ${tagFilter}
+        ${orderClause}
+        LIMIT ? OFFSET ?
+      `);
+
+      countQuery = `SELECT COUNT(*) as count FROM movies ${tagFilter}`;
+      params = [tag];
+
+    } else {
+      queryObj = this.db.prepare(`
+        SELECT * FROM movies 
+        ${orderClause}
+        LIMIT ? OFFSET ?
+      `);
+      countQuery = 'SELECT COUNT(*) as count FROM movies';
+    }
+
+    const moviesRaw = queryObj.all(...params, limit, offset) as unknown as Movie[];
+
+    // Convert SQLite integers to booleans
+    let movies = moviesRaw.map(movie => ({
       ...movie,
       isFavourite: Boolean((movie as Movie).isFavourite),
       isInWatchlist: Boolean((movie as Movie).isInWatchlist)
     })) as Movie[];
-    const totalResult = this.db.prepare('SELECT COUNT(*) as count FROM movies').get() as { count: number };
+
+    // Attach tags
+    movies = this.attachTagsToMovies(movies);
+
+    const totalResult = this.db.prepare(countQuery).get(...params) as { count: number };
     const total = totalResult.count;
     const totalPages = Math.ceil(total / limit);
-    return { movies: convertedMovies, total, totalPages };
+
+    return { movies, total, totalPages };
   }
 
   // Get favorite movies
   getFavoriteMovies(): Movie[] {
-    const movies = this.db.prepare('SELECT * FROM movies WHERE isFavourite = 1 ORDER BY title').all() as unknown as Movie[];
-    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
-    return movies.map(movie => ({
+    const moviesRaw = this.db.prepare('SELECT * FROM movies WHERE isFavourite = 1 ORDER BY title').all() as unknown as Movie[];
+    // Convert SQLite integers to booleans
+    let movies = moviesRaw.map(movie => ({
       ...movie,
       isFavourite: Boolean((movie as Movie).isFavourite),
       isInWatchlist: Boolean((movie as Movie).isInWatchlist)
     })) as Movie[];
+
+    return this.attachTagsToMovies(movies);
   }
 
   /**
-   * Get favorite movies with pagination and optional sorting
-   * @param page - Page number (1-indexed)
-   * @param limit - Number of movies per page
-   * @param sortBy - Sort field: 'createdAt', 'publishedAt', 'title', or 'rating'
+   * Get favorite movies with pagination
    */
-  getFavoriteMoviesPaginated(page: number = 1, limit: number = 20, sortBy?: string): { movies: Movie[]; total: number; totalPages: number } {
+  getFavoriteMoviesPaginated(page: number = 1, limit: number = 20, sortBy?: string, tag?: string): { movies: Movie[]; total: number; totalPages: number } {
     const offset = (page - 1) * limit;
     const orderClause = this.getSortOrderClause(sortBy);
-    
-    const movies = this.db.prepare(`
-      SELECT * FROM movies 
-      WHERE isFavourite = 1 
+
+    let query = `SELECT movies.* FROM movies`;
+    let countQuery = `SELECT COUNT(*) as count FROM movies`;
+    let params: any[] = [];
+    let whereClause = `WHERE isFavourite = 1`;
+
+    if (tag) {
+      query += ` JOIN movie_tags mt ON movies.id = mt.movie_id JOIN tags t ON mt.tag_id = t.id`;
+      countQuery += ` JOIN movie_tags mt ON movies.id = mt.movie_id JOIN tags t ON mt.tag_id = t.id`;
+      whereClause += ` AND t.name = ?`;
+      params.push(tag);
+    }
+
+    const moviesRaw = this.db.prepare(`
+      ${query} 
+      ${whereClause} 
       ${orderClause}
       LIMIT ? OFFSET ?
-    `).all(limit, offset) as unknown as Movie[];
-    
-    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
-    const convertedMovies = movies.map(movie => ({
+    `).all(...params, limit, offset) as unknown as Movie[];
+
+    let movies = moviesRaw.map(movie => ({
       ...movie,
       isFavourite: Boolean((movie as Movie).isFavourite),
       isInWatchlist: Boolean((movie as Movie).isInWatchlist)
     })) as Movie[];
-    
-    const totalResult = this.db.prepare('SELECT COUNT(*) as count FROM movies WHERE isFavourite = 1').get() as { count: number };
+
+    movies = this.attachTagsToMovies(movies);
+
+    const totalResult = this.db.prepare(`${countQuery} ${whereClause}`).get(...params) as { count: number };
     const total = totalResult.count;
     const totalPages = Math.ceil(total / limit);
-    
-    return { movies: convertedMovies, total, totalPages };
+
+    return { movies, total, totalPages };
   }
 
   // Get watchlist movies
   getWatchlistMovies(): Movie[] {
-    const movies = this.db.prepare('SELECT * FROM movies WHERE isInWatchlist = 1 ORDER BY title').all() as unknown as Movie[];
-    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
-    return movies.map(movie => ({
+    const moviesRaw = this.db.prepare('SELECT * FROM movies WHERE isInWatchlist = 1 ORDER BY title').all() as unknown as Movie[];
+
+    let movies = moviesRaw.map(movie => ({
       ...movie,
       isFavourite: Boolean((movie as Movie).isFavourite),
       isInWatchlist: Boolean((movie as Movie).isInWatchlist)
     })) as Movie[];
+
+    return this.attachTagsToMovies(movies);
   }
 
   /**
-   * Get watchlist movies with pagination and optional sorting
-   * @param page - Page number (1-indexed)
-   * @param limit - Number of movies per page
-   * @param sortBy - Sort field: 'createdAt', 'publishedAt', 'title', or 'rating'
+   * Get watchlist movies with pagination
    */
-  getWatchlistMoviesPaginated(page: number = 1, limit: number = 20, sortBy?: string): { movies: Movie[]; total: number; totalPages: number } {
+  getWatchlistMoviesPaginated(page: number = 1, limit: number = 20, sortBy?: string, tag?: string): { movies: Movie[]; total: number; totalPages: number } {
     const offset = (page - 1) * limit;
     const orderClause = this.getSortOrderClause(sortBy);
-    
-    const movies = this.db.prepare(`
-      SELECT * FROM movies 
-      WHERE isInWatchlist = 1 
+
+    let query = `SELECT movies.* FROM movies`;
+    let countQuery = `SELECT COUNT(*) as count FROM movies`;
+    let params: any[] = [];
+    let whereClause = `WHERE isInWatchlist = 1`;
+
+    if (tag) {
+      query += ` JOIN movie_tags mt ON movies.id = mt.movie_id JOIN tags t ON mt.tag_id = t.id`;
+      countQuery += ` JOIN movie_tags mt ON movies.id = mt.movie_id JOIN tags t ON mt.tag_id = t.id`;
+      whereClause += ` AND t.name = ?`;
+      params.push(tag);
+    }
+
+    const moviesRaw = this.db.prepare(`
+      ${query} 
+      ${whereClause} 
       ${orderClause}
       LIMIT ? OFFSET ?
-    `).all(limit, offset) as unknown as Movie[];
-    
-    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
-    const convertedMovies = movies.map(movie => ({
+    `).all(...params, limit, offset) as unknown as Movie[];
+
+    let movies = moviesRaw.map(movie => ({
       ...movie,
       isFavourite: Boolean((movie as Movie).isFavourite),
       isInWatchlist: Boolean((movie as Movie).isInWatchlist)
     })) as Movie[];
-    
-    const totalResult = this.db.prepare('SELECT COUNT(*) as count FROM movies WHERE isInWatchlist = 1').get() as { count: number };
+
+    movies = this.attachTagsToMovies(movies);
+
+    const totalResult = this.db.prepare(`${countQuery} ${whereClause}`).get(...params) as { count: number };
     const total = totalResult.count;
     const totalPages = Math.ceil(total / limit);
-    
-    return { movies: convertedMovies, total, totalPages };
+
+    return { movies, total, totalPages };
   }
 
   // Get random movie
-  getRandomMovie(): Movie | null {
-    const result = this.db.prepare('SELECT * FROM movies ORDER BY RANDOM() LIMIT 1').get() as unknown;
+  getRandomMovie(tag?: string): Movie | null {
+    let query = 'SELECT movies.* FROM movies';
+    let params: any[] = [];
+
+    if (tag) {
+      query += ` JOIN movie_tags mt ON movies.id = mt.movie_id JOIN tags t ON mt.tag_id = t.id WHERE t.name = ?`;
+      params.push(tag);
+    }
+
+    const result = this.db.prepare(`${query} ORDER BY RANDOM() LIMIT 1`).get(...params) as unknown;
     if (!result) return null;
-    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
+
     const movie = result as Movie;
-    return {
+    const movies = [{
       ...movie,
       isFavourite: Boolean(movie.isFavourite),
       isInWatchlist: Boolean(movie.isInWatchlist)
-    };
+    }];
+
+    return this.attachTagsToMovies(movies)[0];
   }
 
   // Get movie by ID
   getMovieById(id: number): Movie | null {
     const result = this.db.prepare('SELECT * FROM movies WHERE id = ?').get(id) as unknown;
     if (!result) return null;
-    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
+
     const movie = result as Movie;
-    return {
+    const movies = [{
       ...movie,
       isFavourite: Boolean(movie.isFavourite),
       isInWatchlist: Boolean(movie.isInWatchlist)
-    };
+    }];
+
+    return this.attachTagsToMovies(movies)[0];
   }
 
   // Search movies
   searchMovies(query: string): Movie[] {
-    const movies = this.db.prepare(`
+    const moviesRaw = this.db.prepare(`
       SELECT * FROM movies 
       WHERE title LIKE ? OR description LIKE ? OR code LIKE ? 
       ORDER BY title
     `).all(`%${query}%`, `%${query}%`, `%${query}%`) as unknown as Movie[];
-    // Convert SQLite integers to booleans for isFavourite and isInWatchlist
-    return movies.map(movie => ({
+
+    let movies = moviesRaw.map(movie => ({
       ...movie,
       isFavourite: Boolean((movie as Movie).isFavourite),
       isInWatchlist: Boolean((movie as Movie).isInWatchlist)
     })) as Movie[];
+
+    return this.attachTagsToMovies(movies);
   }
 
   // Toggle favorite status
   toggleFavorite(id: number): boolean {
     const movie = this.getMovieById(id);
     if (!movie) return false;
-    
+
     const newStatus = !movie.isFavourite;
     const result = this.db.prepare('UPDATE movies SET isFavourite = ? WHERE id = ?').run(newStatus ? 1 : 0, id);
-    
-    // Verify the update was successful
+
     if (result.changes > 0) {
       return newStatus;
     }
-    
-    return movie.isFavourite; // Return original status if update failed
+
+    return movie.isFavourite;
   }
 
   // Toggle watchlist status
   toggleWatchlist(id: number): boolean {
     const movie = this.getMovieById(id);
     if (!movie) return false;
-    
+
     const newStatus = !movie.isInWatchlist;
     const result = this.db.prepare('UPDATE movies SET isInWatchlist = ? WHERE id = ?').run(newStatus ? 1 : 0, id);
-    
-    // Verify the update was successful
+
     if (result.changes > 0) {
       return newStatus;
     }
-    
-    return movie.isInWatchlist; // Return original status if update failed
+
+    return movie.isInWatchlist;
   }
 
   // Update movie rating
   updateRating(id: number, rating: number): boolean {
-    // Validate rating range
     if (rating < 1 || rating > 10) {
       throw new Error('Rating must be between 1 and 10');
     }
-    
+
     const movie = this.getMovieById(id);
     if (!movie) return false;
-    
+
     const result = this.db.prepare('UPDATE movies SET rating = ? WHERE id = ?').run(rating, id);
-    
-    // Verify the update was successful
+
     return result.changes > 0;
   }
 
-  // Update movie with comprehensive field support
+  // Update movie with comprehensive field support including tags
   updateMovie(id: number, updates: {
     title?: string;
     description?: string;
@@ -288,6 +465,7 @@ class MovieDatabase {
     publishedAt?: string;
     coverUrl?: string;
     videoUrl?: string;
+    tags?: string[];
   }): boolean {
     const movie = this.getMovieById(id);
     if (!movie) {
@@ -343,6 +521,11 @@ class MovieDatabase {
       throw new Error(validationErrors.join('; '));
     }
 
+    // Handle tags update separately
+    if (updates.tags !== undefined) {
+      this.updateMovieTags(id, updates.tags);
+    }
+
     // Build dynamic update query
     const updateFields: string[] = [];
     const updateValues: unknown[] = [];
@@ -378,19 +561,20 @@ class MovieDatabase {
     }
 
     if (updateFields.length === 0) {
-      return false; // No fields to update
+      // If only tags were updated, we return true if we reached here
+      // (implied success of tags update)
+      return updates.tags !== undefined;
     }
 
-    // Add ID to the end for WHERE clause
     updateValues.push(id);
 
     const query = `UPDATE movies SET ${updateFields.join(', ')} WHERE id = ?`;
     const result = this.db.prepare(query).run(...updateValues);
 
-    return result.changes > 0;
+    return result.changes > 0 || (updates.tags !== undefined);
   }
 
-  // Get movie by code (with optional exclude ID for uniqueness checking)
+  // Get movie by code
   getMovieByCode(code: string, excludeId?: number): Movie | null {
     let query = 'SELECT * FROM movies WHERE code = ?';
     const params: unknown[] = [code];
@@ -400,16 +584,18 @@ class MovieDatabase {
       params.push(excludeId);
     }
 
-    const movie = this.db.prepare(query).get(...params) as unknown as Movie | undefined;
-    
-    if (!movie) return null;
+    const movieResult = this.db.prepare(query).get(...params) as unknown as Movie | undefined;
 
-    // Convert SQLite integers to booleans
-    return {
-      ...movie,
-      isFavourite: Boolean(movie.isFavourite),
-      isInWatchlist: Boolean(movie.isInWatchlist)
+    if (!movieResult) return null;
+
+    let movie = {
+      ...movieResult,
+      isFavourite: Boolean(movieResult.isFavourite),
+      isInWatchlist: Boolean(movieResult.isInWatchlist)
     } as Movie;
+
+    const moviesWithTags = this.attachTagsToMovies([movie]);
+    return moviesWithTags[0];
   }
 
   // Helper method to validate URLs
@@ -433,16 +619,13 @@ class MovieDatabase {
     this.db.close();
   }
 
-  // Create a new movie
+  // Create a new movie with tags
   createMovie(movieData: MovieCreatePayload): Movie {
-    // Set defaults
     const rating = movieData.rating ?? 5;
     const publishedAt = movieData.publishedAt || new Date().toISOString().split('T')[0];
-    
-    // Validation
+
     const validationErrors: string[] = [];
 
-    // Required field validation
     if (!movieData.title?.trim()) {
       validationErrors.push('Title is required');
     } else if (movieData.title.length > 200) {
@@ -469,7 +652,6 @@ class MovieDatabase {
       validationErrors.push('Cover URL must be a valid URL');
     }
 
-    // Optional field validation
     if (movieData.description && movieData.description.length > 1000) {
       validationErrors.push('Description must be 1000 characters or less');
     }
@@ -492,19 +674,31 @@ class MovieDatabase {
       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
     `);
 
-    const result = stmt.run(
-      movieData.code.trim(),
-      movieData.title.trim(),
-      movieData.description?.trim() || '',
-      movieData.videoUrl.trim(),
-      movieData.coverUrl.trim(),
-      rating,
-      publishedAt
-    );
+    let newMovieId: number | bigint;
+
+    const transaction = this.db.transaction(() => {
+      const result = stmt.run(
+        movieData.code.trim(),
+        movieData.title.trim(),
+        movieData.description?.trim() || '',
+        movieData.videoUrl.trim(),
+        movieData.coverUrl.trim(),
+        rating,
+        publishedAt
+      );
+      newMovieId = result.lastInsertRowid;
+
+      // Add tags if present
+      if (movieData.tags && movieData.tags.length > 0) {
+        this.addTagsToMovie(Number(newMovieId), movieData.tags);
+      }
+    });
+
+    transaction();
 
     // Fetch and return the created movie
-    const createdMovie = this.getMovieById(result.lastInsertRowid as number);
-    
+    const createdMovie = this.getMovieById(Number(newMovieId!));
+
     if (!createdMovie) {
       throw new Error('Failed to create movie');
     }
@@ -522,7 +716,6 @@ class MovieDatabase {
   validateMovieData(movieData: Partial<Movie>): ValidationResult {
     const errors: string[] = [];
 
-    // Required fields validation
     if (!movieData.code || movieData.code.trim() === '') {
       errors.push('Movie code is required');
     }
@@ -539,14 +732,12 @@ class MovieDatabase {
       errors.push('Video URL is required');
     }
 
-    // Rating validation
     if (movieData.rating !== undefined) {
       if (movieData.rating < 1 || movieData.rating > 10) {
         errors.push('Rating must be between 1 and 10');
       }
     }
 
-    // Check for duplicate code
     if (movieData.code && this.checkMovieCodeExists(movieData.code)) {
       errors.push('Movie code already exists');
     }
@@ -574,13 +765,11 @@ class MovieDatabase {
     const transaction = this.db.transaction((movieList: Partial<Movie>[]) => {
       movieList.forEach((movie, index) => {
         try {
-          // Skip if movie code already exists
           if (movie.code && this.checkMovieCodeExists(movie.code)) {
             result.skipped++;
             return;
           }
 
-          // Validate movie data
           const validation = this.validateMovieData(movie);
           if (!validation.isValid) {
             result.errors.push({
@@ -590,8 +779,7 @@ class MovieDatabase {
             return;
           }
 
-          // Insert movie
-          stmt.run(
+          const insertResult = stmt.run(
             movie.code,
             movie.title,
             movie.description,
@@ -602,6 +790,11 @@ class MovieDatabase {
             movie.rating || 5,
             movie.publishedAt || new Date().toISOString().split('T')[0]
           );
+
+          // Handle tags if present in import
+          if (movie.tags && Array.isArray(movie.tags)) {
+            this.addTagsToMovie(Number(insertResult.lastInsertRowid), movie.tags);
+          }
 
           result.success++;
         } catch (error) {
@@ -616,7 +809,6 @@ class MovieDatabase {
     try {
       transaction(movies);
     } catch (error) {
-      // Handle transaction-level errors
       result.errors.push({
         row: 0,
         error: error instanceof Error ? error.message : 'Transaction failed'
@@ -637,6 +829,62 @@ class MovieDatabase {
       favorites: favoritesResult.count,
       watchlist: watchlistResult.count
     };
+  }
+
+  // Tag Management Methods
+
+  /**
+   * Get all tags with usage counts
+   */
+  getAllTags(): Tag[] {
+    return this.db.prepare(`
+        SELECT t.id, t.name, COUNT(mt.movie_id) as count 
+        FROM tags t 
+        LEFT JOIN movie_tags mt ON t.id = mt.tag_id 
+        GROUP BY t.id 
+        ORDER BY t.name
+    `).all() as Tag[];
+  }
+
+  /**
+   * Create a new tag
+   */
+  createTag(name: string): Tag {
+    const trimmedName = name.trim();
+    if (!trimmedName) throw new Error('Tag name required');
+
+    try {
+      const result = this.db.prepare('INSERT INTO tags (name) VALUES (?)').run(trimmedName);
+      return { id: Number(result.lastInsertRowid), name: trimmedName, count: 0 };
+    } catch (error) {
+      if (String(error).includes('UNIQUE constraint failed')) {
+        throw new Error('Tag already exists');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Update tag name
+   */
+  updateTag(id: number, name: string): void {
+    const trimmedName = name.trim();
+    if (!trimmedName) throw new Error('Tag name required');
+
+    const result = this.db.prepare('UPDATE tags SET name = ? WHERE id = ?').run(trimmedName, id);
+    if (result.changes === 0) throw new Error('Tag not found or no change');
+  }
+
+  /**
+   * Delete tag
+   */
+  deleteTag(id: number): void {
+    // Logic handled by foreign key ON DELETE CASCADE, but explicit transaction safe
+    const transaction = this.db.transaction(() => {
+      this.db.prepare('DELETE FROM movie_tags WHERE tag_id = ?').run(id);
+      this.db.prepare('DELETE FROM tags WHERE id = ?').run(id);
+    });
+    transaction();
   }
 
   // Settings methods
@@ -661,12 +909,12 @@ class MovieDatabase {
         INSERT OR REPLACE INTO app_settings (key, value, updatedAt)
         VALUES (?, ?, CURRENT_TIMESTAMP)
       `);
-      
+
       for (const [key, value] of Object.entries(settingsData)) {
         stmt.run(key, value);
       }
     });
-    
+
     transaction(settings);
   }
 
@@ -681,3 +929,4 @@ class MovieDatabase {
 
 // Export singleton instance
 export const movieDB = new MovieDatabase();
+

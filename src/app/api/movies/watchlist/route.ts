@@ -14,7 +14,8 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const sortBy = searchParams.get('sortBy') as SortOption | null;
-    
+    const tag = searchParams.get('tag') || undefined;
+
     // Validate pagination parameters
     if (page < 1 || limit < 1 || limit > 100) {
       return NextResponse.json(
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
         { status: 400 }
       );
     }
-    
+
     // Validate sortBy parameter (whitelist approach)
     if (sortBy && !VALID_SORT_OPTIONS.includes(sortBy)) {
       return NextResponse.json(
@@ -30,10 +31,10 @@ export async function GET(request: Request) {
         { status: 400 }
       );
     }
-    
+
     // Get paginated results with sorting
-    const result = movieDB.getWatchlistMoviesPaginated(page, limit, sortBy || undefined);
-    
+    const result = movieDB.getWatchlistMoviesPaginated(page, limit, sortBy || undefined, tag);
+
     return NextResponse.json({
       movies: result.movies,
       total: result.total,

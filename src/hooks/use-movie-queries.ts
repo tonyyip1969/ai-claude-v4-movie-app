@@ -11,15 +11,16 @@ interface MovieListResponse {
 /**
  * Fetch movies from API with pagination and sorting support
  */
-async function fetchMovieList({ 
-  page = 1, 
-  limit = 20, 
-  search, 
+async function fetchMovieList({
+  page = 1,
+  limit = 20,
+  search,
   type = 'all',
-  sortBy
+  sortBy,
+  tag
 }: MovieListParams): Promise<MovieListResponse> {
   let url = '/api/movies';
-  
+
   // Determine the correct endpoint based on type
   switch (type) {
     case 'favorites':
@@ -29,28 +30,33 @@ async function fetchMovieList({
       url = '/api/movies/watchlist';
       break;
   }
-  
+
   const params = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
   });
-  
+
   if (search) {
     url = '/api/movies/search';
     params.append('q', search);
   }
-  
+
   // Add sortBy parameter if provided
   if (sortBy) {
     params.append('sortBy', sortBy);
   }
-  
+
+  // Add tag parameter if provided
+  if (tag) {
+    params.append('tag', tag);
+  }
+
   const response = await fetch(`${url}?${params}`);
-  
+
   if (!response.ok) {
     throw new Error(`Failed to fetch movies: ${response.status}`);
   }
-  
+
   return response.json();
 }
 
@@ -72,7 +78,7 @@ export function useMovieList(params: MovieListParams = {}) {
  */
 export function useInfiniteMovieList(params: Omit<MovieListParams, 'page'> = {}) {
   const { limit = 20, search, type = 'all' } = params;
-  
+
   return useInfiniteQuery({
     queryKey: queryKeys.movies.list({ limit, search, type, infinite: true } as Record<string, unknown>),
     queryFn: ({ pageParam = 1 }) =>
@@ -157,7 +163,7 @@ export function useRandomMovie() {
  */
 export function useMoviePrefetching() {
   const queryClient = useQueryClient();
-  
+
   const prefetchMovieList = (params: MovieListParams = {}) => {
     return queryClient.prefetchQuery({
       queryKey: queryKeys.movies.list(params as Record<string, unknown>),
@@ -165,7 +171,7 @@ export function useMoviePrefetching() {
       staleTime: 5 * 60 * 1000,
     });
   };
-  
+
   const prefetchMovieDetail = (id: number) => {
     return queryClient.prefetchQuery({
       queryKey: queryKeys.movies.detail(id),
@@ -179,10 +185,10 @@ export function useMoviePrefetching() {
       staleTime: 10 * 60 * 1000,
     });
   };
-  
+
   const prefetchFavorites = () => prefetchMovieList({ type: 'favorites' } as Record<string, unknown>);
   const prefetchWatchlist = () => prefetchMovieList({ type: 'watchlist' } as Record<string, unknown>);
-  
+
   return {
     prefetchMovieList,
     prefetchMovieDetail,
@@ -197,14 +203,14 @@ export function useMoviePrefetching() {
  */
 export function useMovieListOptimization() {
   const queryClient = useQueryClient();
-  
+
   const updateMovieInLists = (movieId: number, updates: Partial<Movie>) => {
     // Update all movie list queries
     queryClient.setQueriesData(
       { queryKey: queryKeys.movies.lists() },
       (oldData: MovieListResponse | undefined) => {
         if (!oldData) return oldData;
-        
+
         return {
           ...oldData,
           movies: oldData.movies.map(movie =>
@@ -214,18 +220,18 @@ export function useMovieListOptimization() {
       }
     );
   };
-  
+
   const removeMovieFromLists = (movieId: number, listType?: 'favorites' | 'watchlist') => {
     // Remove from specific list type or all lists
     const targetKey = listType
       ? queryKeys.movies.list({ type: listType } as Record<string, unknown>)
       : queryKeys.movies.lists();
-    
+
     queryClient.setQueriesData(
       { queryKey: targetKey },
       (oldData: MovieListResponse | undefined) => {
         if (!oldData) return oldData;
-        
+
         return {
           ...oldData,
           movies: oldData.movies.filter(movie => movie.id !== movieId),
@@ -234,7 +240,7 @@ export function useMovieListOptimization() {
       }
     );
   };
-  
+
   return {
     updateMovieInLists,
     removeMovieFromLists,

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallbac
 import Image from 'next/image';
 import { Movie, MovieUpdatePayload, MovieCreatePayload } from '@/types/movie';
 import { validateCodeUniqueness } from '@/lib/movie-validation';
+import { X, Plus } from 'lucide-react';
 
 interface MovieEditFormProps {
   movie?: Movie; // Made optional for creation mode
@@ -41,6 +42,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
     coverUrl: '',
     videoUrl: '',
     rating: 5, // Default rating
+    tags: [] as string[],
   });
 
   const [formData, setFormData] = useState(
@@ -52,6 +54,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
       coverUrl: movie?.coverUrl || '',
       videoUrl: movie?.videoUrl || '',
       rating: movie?.rating || 5,
+      tags: movie?.tags || [],
     }
   );
 
@@ -59,7 +62,12 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
-  
+
+  // Tag management state
+  const [tagInput, setTagInput] = useState('');
+  const [availableTags, setAvailableTags] = useState<{ id: number; name: string }[]>([]);
+  const [isTagsLoading, setIsTagsLoading] = useState(false);
+
   // Code validation state
   const [isCodeValidating, setIsCodeValidating] = useState(false);
   const [codeValidationStatus, setCodeValidationStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
@@ -76,6 +84,25 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
     };
   }, []);
 
+  // Fetch available tags
+  useEffect(() => {
+    const fetchTags = async () => {
+      setIsTagsLoading(true);
+      try {
+        const response = await fetch('/api/tags');
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableTags(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch tags:', error);
+      } finally {
+        setIsTagsLoading(false);
+      }
+    };
+    fetchTags();
+  }, []);
+
   // Initialize form data
   useEffect(() => {
     if (mode === 'edit' && movie) {
@@ -87,6 +114,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
         coverUrl: movie.coverUrl || '',
         videoUrl: movie.videoUrl || '',
         rating: movie.rating || 5,
+        tags: movie.tags || [],
       };
       setFormData(initialData);
       setIsDirty(false);
@@ -103,6 +131,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
     setIsDirty(false);
     setShowImagePreview(false);
     setImageError(false);
+    setTagInput('');
     // Reset code validation state
     setIsCodeValidating(false);
     setCodeValidationStatus('idle');
@@ -125,11 +154,11 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
     abortControllerRef.current = new AbortController();
 
     setIsCodeValidating(true);
-    
+
     try {
       const currentMovieId = mode === 'edit' && movie ? movie.id : 0;
       const result = await validateCodeUniqueness(code, currentMovieId, abortControllerRef.current.signal);
-      
+
       if (result === true) {
         setCodeValidationStatus('valid');
         setCodeError(null);
@@ -168,15 +197,15 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
   }, [formData.code, hasCodeBlurred, validateCode]);
 
   // Handle input changes
-  const handleChange = (field: string, value: string | number) => {
+  const handleChange = (field: string, value: string | number | string[]) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
-      
+
       // Check if form is dirty
       if (mode === 'create') {
         // In create mode, form is dirty if any required field has content
-        const hasContent = newData.title.trim() || newData.code.trim() || 
-                          newData.videoUrl.trim() || newData.coverUrl.trim();
+        const hasContent = newData.title.trim() || newData.code.trim() ||
+          newData.videoUrl.trim() || newData.coverUrl.trim();
         setIsDirty(!!hasContent);
       } else if (mode === 'edit' && movie) {
         // In edit mode, check against original values
@@ -188,21 +217,64 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
           coverUrl: movie.coverUrl || '',
           videoUrl: movie.videoUrl || '',
           rating: movie.rating || 5,
+          tags: movie.tags || [],
         };
-        
-        const dirty = Object.keys(newData).some(key => 
-          newData[key as keyof typeof newData] !== originalData[key as keyof typeof originalData]
-        );
+
+        // Simple comparison for primitives, array comparison for tags
+        const dirty = Object.keys(newData).some(key => {
+          const newVal = newData[key as keyof typeof newData];
+          const oldVal = originalData[key as keyof typeof originalData];
+
+          if (Array.isArray(newVal) && Array.isArray(oldVal)) {
+            return JSON.stringify(newVal.sort()) !== JSON.stringify(oldVal.sort());
+          }
+          return newVal !== oldVal;
+        });
         setIsDirty(dirty);
       }
       return newData;
     });
   };
 
+  // Tag Handling
+  const handleAddTag = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const tag = tagInput.trim();
+    if (tag && !formData.tags.includes(tag)) {
+      handleChange('tags', [...formData.tags, tag]);
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    handleChange('tags', formData.tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
+  // Filter available tags for suggestions
+  const tagSuggestions = availableTags
+    .filter(tag =>
+      tag.name.toLowerCase().includes(tagInput.toLowerCase()) &&
+      !formData.tags.includes(tag.name)
+    )
+    .slice(0, 5);
+
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Add any pending tag input
+    let currentTags = [...formData.tags];
+    if (tagInput.trim() && !currentTags.includes(tagInput.trim())) {
+      currentTags.push(tagInput.trim());
+    }
+
     if (mode === 'create') {
       // Create mode: prepare creation payload
       if (onCreate) {
@@ -214,23 +286,29 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
           description: formData.description.trim() || undefined,
           publishedAt: formData.publishedAt || undefined,
           rating: formData.rating,
+          tags: currentTags,
         };
         onCreate(movieData);
-        
-        // Note: Form reset should be triggered by parent component on success
-        // via the ref's resetForm method to preserve values on error
       }
     } else {
       // Edit mode: prepare update payload
       if (movie && onSave) {
         const updates: MovieUpdatePayload = {};
-        
+
         if (formData.title !== (movie.title || '')) updates.title = formData.title;
         if (formData.description !== (movie.description || '')) updates.description = formData.description;
         if (formData.code !== (movie.code || '')) updates.code = formData.code;
         if (formData.publishedAt !== (movie.publishedAt || '')) updates.publishedAt = formData.publishedAt;
         if (formData.coverUrl !== (movie.coverUrl || '')) updates.coverUrl = formData.coverUrl;
         if (formData.videoUrl !== (movie.videoUrl || '')) updates.videoUrl = formData.videoUrl;
+
+        // Always include tags if they changed, or just include them if we want to be safe
+        // The check is in handleChange, so if we are here and dirty, we might have tag changes.
+        // It's safer to check if tags are different
+        const originalTags = movie.tags || [];
+        if (JSON.stringify(currentTags.sort()) !== JSON.stringify([...originalTags].sort())) {
+          updates.tags = currentTags;
+        }
 
         onSave(updates);
       }
@@ -251,7 +329,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
             {mode === 'create' ? 'Create New Movie' : 'Edit Movie Details'}
           </h2>
-          
+
           {/* Movie Code - With blur validation */}
           <div className="mb-4">
             <label htmlFor="code" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -268,27 +346,26 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
                 disabled={isFormDisabled}
                 aria-describedby={codeError ? 'code-error' : 'code-help'}
                 aria-invalid={!!codeError}
-                className={`w-full px-3 py-2 pr-10 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white font-mono text-sm uppercase ${
-                  codeError 
-                    ? 'border-red-300 dark:border-red-500 focus:border-red-500 focus:ring-red-500' 
+                className={`w-full px-3 py-2 pr-10 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white font-mono text-sm uppercase ${codeError
+                    ? 'border-red-300 dark:border-red-500 focus:border-red-500 focus:ring-red-500'
                     : codeValidationStatus === 'valid'
-                    ? 'border-green-300 dark:border-green-500 focus:border-green-500 focus:ring-green-500'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}
+                      ? 'border-green-300 dark:border-green-500 focus:border-green-500 focus:ring-green-500'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
               />
-              
+
               {/* Status Indicator */}
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                 {isCodeValidating && (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
                 )}
-                
+
                 {!isCodeValidating && codeValidationStatus === 'valid' && !codeError && (
                   <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 )}
-                
+
                 {!isCodeValidating && (codeValidationStatus === 'invalid' || codeError) && (
                   <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -296,14 +373,14 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
                 )}
               </div>
             </div>
-            
+
             {/* Help Text */}
             {!codeError && codeValidationStatus !== 'valid' && !isCodeValidating && (
               <p id="code-help" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Unique identifier for the movie (3-20 characters, letters, numbers, hyphens, underscores)
               </p>
             )}
-            
+
             {/* Error Message */}
             {codeError && (
               <p id="code-error" role="alert" className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
@@ -313,7 +390,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
                 {codeError}
               </p>
             )}
-            
+
             {/* Loading indicator */}
             {isCodeValidating && (
               <p className="mt-1 text-sm text-blue-600 dark:text-blue-400 flex items-center">
@@ -337,6 +414,69 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
               disabled={isFormDisabled}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white"
             />
+          </div>
+
+          {/* Tags Input */}
+          <div className="mb-4 relative">
+            <label htmlFor="tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Tags
+            </label>
+            <div className="flex gap-2 mb-2 flex-wrap">
+              {formData.tags.map(tag => (
+                <span key={tag} className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 px-2 py-1 rounded-md text-sm flex items-center gap-1">
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(tag)}
+                    className="hover:text-indigo-600 dark:hover:text-white"
+                    disabled={isFormDisabled}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  id="tags"
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Add a tag..."
+                  disabled={isFormDisabled}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white"
+                  autoComplete="off"
+                />
+                {/* Suggestions Dropdown */}
+                {tagInput && tagSuggestions.length > 0 && (
+                  <div className="absolute mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+                    {tagSuggestions.map(tag => (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => {
+                          handleChange('tags', [...formData.tags, tag.name]);
+                          setTagInput('');
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+                      >
+                        {tag.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => handleAddTag()}
+                disabled={isFormDisabled || !tagInput.trim()}
+                className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Description */}
@@ -427,7 +567,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
                   {showImagePreview ? 'Hide' : 'Preview'}
                 </button>
               </div>
-              
+
               {/* Image Preview */}
               {showImagePreview && formData.coverUrl && (
                 <div className="mt-3 p-3 border border-gray-200 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800">
@@ -503,7 +643,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
                 </span>
               )}
             </div>
-            
+
             <div className="flex space-x-3">
               <button
                 type="button"
@@ -513,7 +653,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
               >
                 Cancel
               </button>
-              
+
               <button
                 type="submit"
                 disabled={isFormDisabled || !isDirty || isCodeValidating || !!codeError}

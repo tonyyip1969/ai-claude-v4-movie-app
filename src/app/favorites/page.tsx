@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import SortControl from '@/components/SortControl';
+import TagFilterControl from '@/components/TagFilterControl';
 import Pagination from '@/components/Pagination';
 import ResponsiveMovieGrid from '@/components/ResponsiveMovieGrid';
 import { MovieGridSkeleton } from '@/components/LoadingSkeleton';
@@ -16,25 +17,33 @@ function FavoritesContent() {
   const searchParams = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortOption>('publishedAt');
-  
-  // Initialize page and sort from URL parameters
+  const [selectedTag, setSelectedTag] = useState<string>('');
+
+  // Initialize from URL parameters
   useEffect(() => {
     const pageFromUrl = searchParams.get('page');
     const sortFromUrl = searchParams.get('sortBy') as SortOption;
-    
+    const tagFromUrl = searchParams.get('tag');
+
     if (pageFromUrl) {
       const parsedPage = parseInt(pageFromUrl, 10);
       if (!isNaN(parsedPage) && parsedPage > 0) {
         setCurrentPage(parsedPage);
       }
     }
-    
+
     if (sortFromUrl && ['createdAt', 'publishedAt', 'title', 'rating'].includes(sortFromUrl)) {
       setSortBy(sortFromUrl);
     }
+
+    if (tagFromUrl) {
+      setSelectedTag(tagFromUrl);
+    } else {
+      setSelectedTag('');
+    }
   }, [searchParams]);
 
-  // Use enhanced query hook for favorites with sorting
+  // Use enhanced query hook for favorites with sorting and filtering
   const {
     data: favoritesData,
     isLoading,
@@ -43,29 +52,43 @@ function FavoritesContent() {
     page: currentPage,
     limit: moviesPerPage,
     sortBy: sortBy,
+    tag: selectedTag || undefined,
   });
 
   // Handle page changes
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
-    // Update URL
-    const url = new URL(window.location.href);
-    url.searchParams.set('page', page.toString());
-    window.history.pushState(null, '', url.toString());
+    updateUrl({ page: page.toString() });
   }, []);
 
   // Handle sort change
   const handleSortChange = useCallback((newSortBy: SortOption) => {
     setSortBy(newSortBy);
-    setCurrentPage(1); // Reset to page 1 when sort changes
-    
-    // Update URL
-    const url = new URL(window.location.href);
-    url.searchParams.set('sortBy', newSortBy);
-    url.searchParams.set('page', '1');
-    window.history.pushState(null, '', url.toString());
+    setCurrentPage(1);
+    updateUrl({ sortBy: newSortBy, page: '1' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
+
+  // Handle tag change
+  const handleTagChange = useCallback((tag: string | undefined) => {
+    const newTag = tag || '';
+    setSelectedTag(newTag);
+    setCurrentPage(1);
+    updateUrl({ tag: newTag, page: '1' });
+  }, []);
+
+  // Helper to update URL
+  const updateUrl = (updates: Record<string, string>) => {
+    const url = new URL(window.location.href);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) {
+        url.searchParams.set(key, value);
+      } else {
+        url.searchParams.delete(key);
+      }
+    });
+    window.history.pushState(null, '', url.toString());
+  };
 
   if (!isLoaded) {
     return <MovieGridSkeleton />;
@@ -85,42 +108,59 @@ function FavoritesContent() {
               <Heart className="w-7 h-7 text-white fill-white" />
             </div>
             <h1 className="text-4xl lg:text-5xl font-bold text-white">
-              Your&nbsp;
-              <span className="bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
-                Favorites
-              </span>
+              {selectedTag ? (
+                <>
+                  <span className="bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
+                    {selectedTag}
+                  </span>
+                  &nbsp;Favorites
+                </>
+              ) : (
+                <>
+                  Your&nbsp;
+                  <span className="bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
+                    Favorites
+                  </span>
+                </>
+              )}
             </h1>
           </div>
-          
+
           <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
             Your personally curated collection of favorite movies. All the films you&apos;ve marked as favorites are here for easy access.
           </p>
         </div>
       )}
 
-      {/* Section Header */}
-      {!isLoading && (total > 0) && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Heart className="w-6 h-6 text-red-400 fill-red-400" />
-            <h2 className="text-2xl font-bold text-white">Favorite Movies</h2>
+      {/* Control Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center space-x-3">
+          <Heart className="w-6 h-6 text-red-400 fill-red-400" />
+          <h2 className="text-2xl font-bold text-white">Favorite Movies</h2>
+          {!isLoading && (
             <span className="bg-red-500/20 text-red-300 px-3 py-1 rounded-full text-sm">
               {total} {total === 1 ? 'movie' : 'movies'}
             </span>
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <SortControl
-              value={sortBy}
-              onChange={handleSortChange}
-            />
-            
-            {totalPages > 1 && (
-              <p className="text-gray-400 text-sm hidden md:block">
-                Page {currentPage} of {totalPages}
-              </p>
-            )}
-          </div>
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <TagFilterControl
+            selectedTag={selectedTag}
+            onTagSelect={handleTagChange}
+          />
+          <SortControl
+            value={sortBy}
+            onChange={handleSortChange}
+          />
+        </div>
+      </div>
+
+      {!isLoading && (total > 0) && totalPages > 1 && (
+        <div className="flex justify-end">
+          <p className="text-gray-400 text-sm hidden md:block">
+            Page {currentPage} of {totalPages}
+          </p>
         </div>
       )}
 
@@ -142,18 +182,30 @@ function FavoritesContent() {
         <div className="text-center py-16">
           <HeartOff className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-300 mb-2">
-            No favorite movies yet
+            No favorite movies found
           </h3>
           <p className="text-gray-500 mb-6">
-            Start exploring and add movies to your favorites to see them here
+            {selectedTag
+              ? `No favorite movies tagged with "${selectedTag}"`
+              : "Start exploring and add movies to your favorites to see them here"
+            }
           </p>
-          <a
-            href="/"
-            className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-300"
-          >
-            <Heart className="w-4 h-4" />
-            <span>Discover Movies</span>
-          </a>
+          {selectedTag ? (
+            <button
+              onClick={() => handleTagChange('')}
+              className="text-blue-400 hover:text-blue-300 underline"
+            >
+              Clear tag filter
+            </button>
+          ) : (
+            <a
+              href="/"
+              className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-300"
+            >
+              <Heart className="w-4 h-4" />
+              <span>Discover Movies</span>
+            </a>
+          )}
         </div>
       )}
 
@@ -192,7 +244,7 @@ function FavoritesContent() {
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-white">Manage Your Favorites</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
-                You can remove movies from your favorites by clicking the heart icon on any movie card. 
+                You can remove movies from your favorites by clicking the heart icon on any movie card.
                 Your favorites are saved and will be here whenever you return.
               </p>
             </div>

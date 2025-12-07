@@ -34,7 +34,7 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
       setLoading(true);
       try {
         const response = await fetch(`/api/movies/${params.id}`);
-        
+
         if (response.ok) {
           const movieData = await response.json();
           setMovie(movieData);
@@ -58,11 +58,11 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
     // Get the page parameter from URL
     const returnPage = searchParams.get('page');
     const fromPage = searchParams.get('from');
-    
+
     // If we have a return page, navigate to the appropriate page with page parameter
     if (returnPage) {
       let targetUrl = '/';
-      
+
       if (fromPage === 'favorites') {
         targetUrl = `/favorites?page=${returnPage}`;
       } else if (fromPage === 'watchlist') {
@@ -71,7 +71,7 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
         // Default to homepage
         targetUrl = `/?page=${returnPage}`;
       }
-      
+
       router.push(targetUrl);
     } else {
       // Fallback to browser back
@@ -81,9 +81,9 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
 
   const handleFavoriteToggle = async () => {
     if (!movie) return;
-    favoriteMutation.mutate({ 
-      movieId: movie.id, 
-      currentStatus: movie.isFavourite 
+    favoriteMutation.mutate({
+      movieId: movie.id,
+      currentStatus: movie.isFavourite
     });
     // Optimistically update local state
     setMovie(prev => prev ? { ...prev, isFavourite: !prev.isFavourite } : null);
@@ -91,9 +91,9 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
 
   const handleWatchlistToggle = async () => {
     if (!movie) return;
-    watchlistMutation.mutate({ 
-      movieId: movie.id, 
-      currentStatus: movie.isInWatchlist 
+    watchlistMutation.mutate({
+      movieId: movie.id,
+      currentStatus: movie.isInWatchlist
     });
     // Optimistically update local state
     setMovie(prev => prev ? { ...prev, isInWatchlist: !prev.isInWatchlist } : null);
@@ -101,9 +101,9 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
 
   const handleRatingChange = async (newRating: number) => {
     if (!movie) return;
-    ratingMutation.mutate({ 
-      movieId: movie.id, 
-      rating: newRating 
+    ratingMutation.mutate({
+      movieId: movie.id,
+      rating: newRating
     });
     // Optimistically update local state
     setMovie(prev => prev ? { ...prev, rating: newRating } : null);
@@ -111,21 +111,21 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
 
   const handleEditMovie = () => {
     if (!movie) return;
-    
+
     // Preserve current URL parameters for navigation state
     const returnPage = searchParams.get('page');
     const fromPage = searchParams.get('from');
-    
+
     let editUrl = `/movie/${movie.id}/edit`;
     const queryParams = new URLSearchParams();
-    
+
     if (returnPage) queryParams.set('page', returnPage);
     if (fromPage) queryParams.set('from', fromPage);
-    
+
     if (queryParams.toString()) {
       editUrl += `?${queryParams.toString()}`;
     }
-    
+
     router.push(editUrl);
   };
 
@@ -144,7 +144,7 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
             {error || 'Movie not found'}
           </h1>
           <p className="text-gray-500 max-w-md">
-            {error === 'Movie not found' 
+            {error === 'Movie not found'
               ? "The movie you're looking for doesn't exist or has been removed."
               : "There was a problem loading this movie. Please try again later."
             }
@@ -198,7 +198,7 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
           {/* Left Side - Movie Poster and Rating */}
           <div className="flex-[3] space-y-6">
             <div className="relative aspect-[3/2] rounded-xl overflow-hidden bg-gray-800 shadow-2xl cursor-pointer group"
-                 onClick={() => setShowVideo(true)}>
+              onClick={() => setShowVideo(true)}>
               {!imageError ? (
                 <Image
                   src={movie.coverUrl}
@@ -216,7 +216,7 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
                   </div>
                 </div>
               )}
-              
+
               {/* Play Button Overlay */}
               <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <div className="bg-white/90 backdrop-blur-sm rounded-full p-4 shadow-lg transform scale-75 group-hover:scale-100 transition-transform duration-300">
@@ -248,9 +248,9 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
                   )} />
                   <span>
                     {favoriteMutation.isPending
-                      ? 'Updating...' 
-                      : movie.isFavourite 
-                        ? 'Remove from Favorites' 
+                      ? 'Updating...'
+                      : movie.isFavourite
+                        ? 'Remove from Favorites'
                         : 'Add to Favorites'
                     }
                   </span>
@@ -273,9 +273,9 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
                   )} />
                   <span>
                     {watchlistMutation.isPending
-                      ? 'Updating...' 
-                      : movie.isInWatchlist 
-                        ? 'Remove from Watchlist' 
+                      ? 'Updating...'
+                      : movie.isInWatchlist
+                        ? 'Remove from Watchlist'
                         : 'Add to Watchlist'
                     }
                   </span>
@@ -318,7 +318,7 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
               <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight">
                 {movie.title}
               </h1>
-              
+
               {/* Rating and Year */}
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-1">
@@ -343,6 +343,23 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
                 {movie.description}
               </p>
             </div>
+
+            {/* Tags */}
+            {movie.tags && movie.tags.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-xl font-semibold text-white">Tags</h3>
+                <div className="flex flex-wrap gap-2">
+                  {movie.tags.map(tag => (
+                    <span
+                      key={tag}
+                      className="bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full text-sm font-medium hover:bg-indigo-600/30 transition-colors cursor-default"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Movie Details Grid */}
             <div className="space-y-3">

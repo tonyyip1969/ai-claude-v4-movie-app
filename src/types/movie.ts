@@ -10,6 +10,7 @@ export interface Movie {
   rating: number;
   createdAt: string;
   publishedAt: string;
+  tags: string[];
 }
 
 export interface PaginatedMovies {
@@ -35,6 +36,7 @@ export interface MovieUpdatePayload {
   publishedAt?: string;
   coverUrl?: string;
   videoUrl?: string;
+  tags?: string[];
 }
 
 /**
@@ -48,6 +50,7 @@ export interface MovieFormData {
   publishedAt: string;
   coverUrl: string;
   videoUrl: string;
+  tags: string;
 }
 
 /**
@@ -61,6 +64,7 @@ export interface MovieValidationErrors {
   publishedAt?: string[];
   coverUrl?: string[];
   videoUrl?: string[];
+  tags?: string[];
   general?: string[];
 }
 
@@ -85,11 +89,12 @@ export interface MovieCreatePayload {
   code: string;        // REQUIRED per user request
   videoUrl: string;
   coverUrl: string;
-  
+
   // Optional fields
   description?: string;
   publishedAt?: string; // Will default to today if not provided
   rating?: number;      // Will default to 5 if not provided
+  tags?: string[];
 }
 
 /**
@@ -104,6 +109,7 @@ export interface MovieCreateFormData {
   coverUrl: string;
   videoUrl: string;
   rating: number;       // Will be pre-filled with 5
+  tags: string;
 }
 
 /**
@@ -132,4 +138,5 @@ export interface MovieListParams {
   search?: string;
   sortBy?: SortOption;
   type?: 'all' | 'favorites' | 'watchlist';
+  tag?: string;
 }
