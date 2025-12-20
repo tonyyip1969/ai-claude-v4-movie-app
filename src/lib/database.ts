@@ -202,7 +202,7 @@ class MovieDatabase {
 
     let queryObj;
     let countQuery;
-    let params: any[] = [];
+    let params: unknown[] = [];
 
     if (tag) {
       // Filter by tag
@@ -254,7 +254,7 @@ class MovieDatabase {
   getFavoriteMovies(): Movie[] {
     const moviesRaw = this.db.prepare('SELECT * FROM movies WHERE isFavourite = 1 ORDER BY title').all() as unknown as Movie[];
     // Convert SQLite integers to booleans
-    let movies = moviesRaw.map(movie => ({
+    const movies = moviesRaw.map(movie => ({
       ...movie,
       isFavourite: Boolean((movie as Movie).isFavourite),
       isInWatchlist: Boolean((movie as Movie).isInWatchlist)
@@ -272,7 +272,7 @@ class MovieDatabase {
 
     let query = `SELECT movies.* FROM movies`;
     let countQuery = `SELECT COUNT(*) as count FROM movies`;
-    let params: any[] = [];
+    const params: unknown[] = [];
     let whereClause = `WHERE isFavourite = 1`;
 
     if (tag) {
@@ -308,7 +308,7 @@ class MovieDatabase {
   getWatchlistMovies(): Movie[] {
     const moviesRaw = this.db.prepare('SELECT * FROM movies WHERE isInWatchlist = 1 ORDER BY title').all() as unknown as Movie[];
 
-    let movies = moviesRaw.map(movie => ({
+    const movies = moviesRaw.map(movie => ({
       ...movie,
       isFavourite: Boolean((movie as Movie).isFavourite),
       isInWatchlist: Boolean((movie as Movie).isInWatchlist)
@@ -326,7 +326,7 @@ class MovieDatabase {
 
     let query = `SELECT movies.* FROM movies`;
     let countQuery = `SELECT COUNT(*) as count FROM movies`;
-    let params: any[] = [];
+    const params: unknown[] = [];
     let whereClause = `WHERE isInWatchlist = 1`;
 
     if (tag) {
@@ -361,7 +361,7 @@ class MovieDatabase {
   // Get random movie
   getRandomMovie(tag?: string): Movie | null {
     let query = 'SELECT movies.* FROM movies';
-    let params: any[] = [];
+    const params: unknown[] = [];
 
     if (tag) {
       query += ` JOIN movie_tags mt ON movies.id = mt.movie_id JOIN tags t ON mt.tag_id = t.id WHERE t.name = ?`;
@@ -404,7 +404,7 @@ class MovieDatabase {
       ORDER BY title
     `).all(`%${query}%`, `%${query}%`, `%${query}%`) as unknown as Movie[];
 
-    let movies = moviesRaw.map(movie => ({
+    const movies = moviesRaw.map(movie => ({
       ...movie,
       isFavourite: Boolean((movie as Movie).isFavourite),
       isInWatchlist: Boolean((movie as Movie).isInWatchlist)
@@ -588,7 +588,7 @@ class MovieDatabase {
 
     if (!movieResult) return null;
 
-    let movie = {
+    const movie = {
       ...movieResult,
       isFavourite: Boolean(movieResult.isFavourite),
       isInWatchlist: Boolean(movieResult.isInWatchlist)

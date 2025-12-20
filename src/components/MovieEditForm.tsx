@@ -66,7 +66,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
   // Tag management state
   const [tagInput, setTagInput] = useState('');
   const [availableTags, setAvailableTags] = useState<{ id: number; name: string }[]>([]);
-  const [isTagsLoading, setIsTagsLoading] = useState(false);
+
 
   // Code validation state
   const [isCodeValidating, setIsCodeValidating] = useState(false);
@@ -87,7 +87,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
   // Fetch available tags
   useEffect(() => {
     const fetchTags = async () => {
-      setIsTagsLoading(true);
+
       try {
         const response = await fetch('/api/tags');
         if (response.ok) {
@@ -96,8 +96,6 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
         }
       } catch (error) {
         console.error('Failed to fetch tags:', error);
-      } finally {
-        setIsTagsLoading(false);
       }
     };
     fetchTags();
@@ -270,7 +268,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
     e.preventDefault();
 
     // Add any pending tag input
-    let currentTags = [...formData.tags];
+    const currentTags = [...formData.tags];
     if (tagInput.trim() && !currentTags.includes(tagInput.trim())) {
       currentTags.push(tagInput.trim());
     }
@@ -347,10 +345,10 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
                 aria-describedby={codeError ? 'code-error' : 'code-help'}
                 aria-invalid={!!codeError}
                 className={`w-full px-3 py-2 pr-10 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white font-mono text-sm uppercase ${codeError
-                    ? 'border-red-300 dark:border-red-500 focus:border-red-500 focus:ring-red-500'
-                    : codeValidationStatus === 'valid'
-                      ? 'border-green-300 dark:border-green-500 focus:border-green-500 focus:ring-green-500'
-                      : 'border-gray-300 dark:border-gray-600'
+                  ? 'border-red-300 dark:border-red-500 focus:border-red-500 focus:ring-red-500'
+                  : codeValidationStatus === 'valid'
+                    ? 'border-green-300 dark:border-green-500 focus:border-green-500 focus:ring-green-500'
+                    : 'border-gray-300 dark:border-gray-600'
                   }`}
               />
 

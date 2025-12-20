@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Tag as TagIcon, X, Check } from 'lucide-react';
+import { Tag as TagIcon, X } from 'lucide-react';
 import { Tag } from '@/lib/database';
 
 interface TagFilterControlProps {
@@ -55,8 +55,8 @@ export default function TagFilterControl({ selectedTag, onTagSelect, className =
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 border ${selectedTag
-                        ? 'bg-indigo-600 border-indigo-500 text-white hover:bg-indigo-700'
-                        : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white'
+                    ? 'bg-indigo-600 border-indigo-500 text-white hover:bg-indigo-700'
+                    : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white'
                     }`}
             >
                 <TagIcon className="w-4 h-4" />
@@ -91,8 +91,8 @@ export default function TagFilterControl({ selectedTag, onTagSelect, className =
                                 key={tag.id}
                                 onClick={() => handleSelect(tag.name)}
                                 className={`w-full flex items-center justify-between text-left px-3 py-2 rounded text-sm mt-1 ${selectedTag === tag.name
-                                        ? 'bg-indigo-600 text-white'
-                                        : 'text-gray-300 hover:bg-gray-700/50'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'text-gray-300 hover:bg-gray-700/50'
                                     }`}
                             >
                                 <span>{tag.name}</span>
