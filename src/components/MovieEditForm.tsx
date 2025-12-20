@@ -2,7 +2,7 @@ import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallbac
 import Image from 'next/image';
 import { Movie, MovieUpdatePayload, MovieCreatePayload } from '@/types/movie';
 import { validateCodeUniqueness } from '@/lib/movie-validation';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, ArrowLeft } from 'lucide-react';
 
 interface MovieEditFormProps {
   movie?: Movie; // Made optional for creation mode
@@ -531,6 +531,22 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
             </div>
           </div>
 
+          {/* Video URL */}
+          <div className="mb-6">
+            <label htmlFor="videoUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Video URL <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="videoUrl"
+              type="url"
+              value={formData.videoUrl}
+              onChange={(e) => handleChange('videoUrl', e.target.value)}
+              placeholder="https://example.com/video.mp4"
+              disabled={isFormDisabled}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+
           {/* Cover URL with Preview */}
           <div className="mb-4">
             <label htmlFor="coverUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -616,25 +632,18 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
             </div>
           </div>
 
-          {/* Video URL */}
-          <div className="mb-6">
-            <label htmlFor="videoUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Video URL <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="videoUrl"
-              type="url"
-              value={formData.videoUrl}
-              onChange={(e) => handleChange('videoUrl', e.target.value)}
-              placeholder="https://example.com/video.mp4"
-              disabled={isFormDisabled}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white"
-            />
-          </div>
-
           {/* Form Actions */}
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex items-center gap-2">
+              {/* button to navigate to previous history */}
+              <button
+                onClick={() => history.back()}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                title="Back to movie details"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+
               {isDirty && (
                 <span className="text-sm text-amber-600 dark:text-amber-400">
                   Unsaved changes
