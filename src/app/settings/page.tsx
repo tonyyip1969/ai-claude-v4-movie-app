@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, RotateCcw, Grid, Sidebar, Eye, EyeOff } from 'lucide-react';
+import { Settings as SettingsIcon, Save, RotateCcw, Grid, Sidebar, Eye, EyeOff, Timer } from 'lucide-react';
 import { useSettings, SettingsData } from '@/hooks/useSettings';
 
 export default function SettingsPage() {
@@ -122,6 +122,79 @@ export default function SettingsPage() {
               <p className="text-xs text-gray-500">
                 When disabled, pages will start directly with content, providing a more compact view. 
                 This affects pages like Favorites, Watchlist, and other sections with decorative headers.
+              </p>
+            </div>
+          </div>
+        </div>
+
+
+        {/* Random Discovery Setting */}
+        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 space-y-4">
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-center w-10 h-10 bg-amber-500/20 rounded-lg">
+              <Timer className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-white">Random Discovery</h3>
+              <p className="text-gray-400 text-sm">Control automatic random movie loading behavior</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <label className="text-white font-medium">Enable Auto Load</label>
+                <p className="text-gray-400 text-sm">Automatically load the next random movie after a delay</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={localSettings.randomAutoLoadEnabled}
+                  onChange={(e) => updateLocalSetting('randomAutoLoadEnabled', e.target.checked)}
+                />
+                <div className={`w-11 h-6 rounded-full transition-colors ${
+                  localSettings.randomAutoLoadEnabled ? 'bg-amber-600' : 'bg-gray-600'
+                }`}>
+                  <div className={`w-5 h-5 bg-white rounded-full shadow-lg transform transition-transform ${
+                    localSettings.randomAutoLoadEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                  } mt-0.5`}></div>
+                </div>
+              </label>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-white font-medium">Auto-load interval (seconds):</label>
+                <span className="text-amber-400 font-semibold">{localSettings.randomAutoLoadIntervalSeconds}s</span>
+              </div>
+
+              <input
+                type="range"
+                min="3"
+                max="60"
+                step="1"
+                value={localSettings.randomAutoLoadIntervalSeconds}
+                onChange={(e) => updateLocalSetting('randomAutoLoadIntervalSeconds', parseInt(e.target.value, 10))}
+                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+              />
+
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>3s</span>
+                <span>15s</span>
+                <span>30s</span>
+                <span>45s</span>
+                <span>60s</span>
+              </div>
+            </div>
+
+            <div className="bg-gray-900/50 rounded-lg p-4">
+              <p className="text-sm text-gray-400 mb-2">
+                Status: Auto load is {localSettings.randomAutoLoadEnabled ? 'enabled' : 'disabled'}
+              </p>
+              <p className="text-xs text-gray-500">
+                While enabled, the Random page will automatically fetch a new movie every {localSettings.randomAutoLoadIntervalSeconds} second{localSettings.randomAutoLoadIntervalSeconds === 1 ? '' : 's'}.
+                You can still use the Space key shortcut or button for immediate refreshes.
               </p>
             </div>
           </div>

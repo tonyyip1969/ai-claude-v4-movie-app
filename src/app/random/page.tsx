@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Movie } from '@/types/movie';
 import MovieCard from '@/components/MovieCard';
 import { MovieCardSkeleton } from '@/components/LoadingSkeleton';
@@ -17,7 +17,7 @@ export default function RandomPage() {
   const favoriteMutation = useToggleFavorite();
   const watchlistMutation = useToggleWatchlist();
 
-  const fetchRandomMovie = async () => {
+  const fetchRandomMovie = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/movies/random', {
@@ -39,11 +39,53 @@ export default function RandomPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchRandomMovie();
-  }, []);
+  }, [fetchRandomMovie]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isInputTarget = !!target && (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      );
+
+      if (isInputTarget) {
+        return;
+      }
+
+      if (event.code === 'Space') {
+        event.preventDefault();
+        fetchRandomMovie();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [fetchRandomMovie]);
+
+  useEffect(() => {
+    if (!settings.randomAutoLoadEnabled) {
+      return;
+    }
+
+    const intervalSeconds = Math.max(settings.randomAutoLoadIntervalSeconds, 1);
+    const timeoutId = window.setTimeout(() => {
+      fetchRandomMovie();
+    }, intervalSeconds * 1000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    movie?.id,
+    settings.randomAutoLoadEnabled,
+    settings.randomAutoLoadIntervalSeconds,
+    fetchRandomMovie,
+  ]);
 
   const handleFavoriteToggle = async (movieId: number) => {
     if (!movie) return;
@@ -160,8 +202,11 @@ export default function RandomPage() {
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-white">Random Movie Selection</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
-                Each time you click &quot;Get Another Random Movie&quot;, we&apos;ll surprise you with a different film from our collection. 
-                This is a great way to discover movies you might not have found otherwise!
+                Click &quot;Get Another Random Movie&quot; or press <kbd className="px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-300">Space</kbd>{' '}
+                to discover another film instantly.
+                {settings.randomAutoLoadEnabled
+                  ? ` Auto-load is enabled and will fetch a new movie every ${settings.randomAutoLoadIntervalSeconds} second${settings.randomAutoLoadIntervalSeconds === 1 ? '' : 's'}.`
+                  : ' Enable auto-load in Settings to keep discoveries flowing automatically.'}
               </p>
             </div>
           </div>

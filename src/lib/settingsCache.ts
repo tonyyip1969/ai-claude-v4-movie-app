@@ -15,6 +15,8 @@ class SettingsCache {
     gridRows: 4,
     sidebarCollapsed: false,
     showHeader: true,
+    randomAutoLoadEnabled: false,
+    randomAutoLoadIntervalSeconds: 10,
   };
 
   /**
