@@ -15,6 +15,8 @@ export class SettingsMigration {
     gridRows: 4,
     sidebarCollapsed: false,
     showHeader: true,
+    randomAutoLoadEnabled: false,
+    randomAutoLoadIntervalSeconds: 10,
   };
 
   /**
@@ -75,6 +77,8 @@ export class SettingsMigration {
         gridRows: settings.gridRows.toString(),
         sidebarCollapsed: settings.sidebarCollapsed.toString(),
         showHeader: settings.showHeader.toString(),
+        randomAutoLoadEnabled: settings.randomAutoLoadEnabled.toString(),
+        randomAutoLoadIntervalSeconds: settings.randomAutoLoadIntervalSeconds.toString(),
       };
 
       const response = await fetch('/api/settings', {
@@ -204,6 +208,17 @@ export class SettingsMigration {
     
     if (rawSettings.showHeader !== undefined) {
       parsed.showHeader = rawSettings.showHeader === 'true';
+    }
+
+    if (rawSettings.randomAutoLoadEnabled !== undefined) {
+      parsed.randomAutoLoadEnabled = rawSettings.randomAutoLoadEnabled === 'true';
+    }
+
+    if (rawSettings.randomAutoLoadIntervalSeconds) {
+      const randomAutoLoadIntervalSeconds = parseInt(rawSettings.randomAutoLoadIntervalSeconds, 10);
+      if (!isNaN(randomAutoLoadIntervalSeconds) && randomAutoLoadIntervalSeconds > 0) {
+        parsed.randomAutoLoadIntervalSeconds = randomAutoLoadIntervalSeconds;
+      }
     }
     
     return parsed;
