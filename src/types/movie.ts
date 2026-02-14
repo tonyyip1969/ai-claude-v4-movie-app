@@ -140,3 +140,11 @@ export interface MovieListParams {
   type?: 'all' | 'favorites' | 'watchlist';
   tag?: string;
 }
+
+export interface MoviePlayHistory {
+  movieId: number;
+  progressSeconds: number;
+  durationSeconds: number;
+  updatedAt: string;
+  movie: Movie;
+}

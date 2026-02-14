@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, RotateCcw, Grid, Sidebar, Eye, EyeOff, Timer } from 'lucide-react';
+import { Settings as SettingsIcon, Save, RotateCcw, Grid, Sidebar, Eye, EyeOff, Timer, History } from 'lucide-react';
 import { useSettings, SettingsData } from '@/hooks/useSettings';
 
 export default function SettingsPage() {
@@ -332,6 +332,52 @@ export default function SettingsPage() {
               <p className="text-xs text-gray-500">
                 This setting controls whether the sidebar starts collapsed when you visit the app. 
                 You can always toggle it manually using the sidebar button.
+              </p>
+            </div>
+          </div>
+        </div>
+
+
+        {/* Play History Setting */}
+        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 space-y-4">
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-center w-10 h-10 bg-cyan-500/20 rounded-lg">
+              <History className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-white">Play History</h3>
+              <p className="text-gray-400 text-sm">Configure how many recently played movies to keep</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-white font-medium">History Entries Limit</label>
+                <span className="text-cyan-300 text-sm font-semibold">{localSettings.playHistoryLimit} entries</span>
+              </div>
+              <input
+                type="range"
+                min="5"
+                max="50"
+                step="1"
+                value={localSettings.playHistoryLimit}
+                onChange={(e) => updateLocalSetting('playHistoryLimit', parseInt(e.target.value, 10))}
+                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+              />
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>5</span>
+                <span>25</span>
+                <span>50</span>
+              </div>
+            </div>
+
+            <div className="bg-gray-900/50 rounded-lg p-4">
+              <p className="text-sm text-gray-400 mb-1">
+                The History page will show the last {localSettings.playHistoryLimit} watched movies.
+              </p>
+              <p className="text-xs text-gray-500">
+                Finished movies are automatically removed when playback reaches the end.
               </p>
             </div>
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, HelpCircle } from 'lucide-react';
 import VideoPlayer from './VideoPlayer';
@@ -11,10 +11,58 @@ interface VideoModalProps {
   src: string;
   poster?: string;
   title?: string;
+  movieId: number;
 }
 
-export default function VideoModal({ isOpen, onClose, src, poster, title }: VideoModalProps) {
+export default function VideoModal({ isOpen, onClose, src, poster, title, movieId }: VideoModalProps) {
   const [showHelp, setShowHelp] = useState(false);
+  const [initialTime, setInitialTime] = useState(0);
+  const latestProgressRef = useRef<{ currentTime: number; duration: number } | null>(null);
+
+
+  const saveProgress = useCallback(async () => {
+    const latest = latestProgressRef.current;
+    if (!latest || latest.duration <= 0) return;
+
+    try {
+      await fetch(`/api/history/${movieId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          progressSeconds: latest.currentTime,
+          durationSeconds: latest.duration,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to save playback progress:', error);
+    }
+  }, [movieId]);
+
+  const handleProgress = useCallback((currentTime: number, duration: number) => {
+    latestProgressRef.current = { currentTime, duration };
+  }, []);
+
+  const handleClose = useCallback(async () => {
+    await saveProgress();
+    onClose();
+  }, [onClose, saveProgress]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchProgress = async () => {
+      try {
+        const response = await fetch(`/api/history/${movieId}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        setInitialTime(data.progress?.progressSeconds || 0);
+      } catch (error) {
+        console.error('Failed to fetch playback progress:', error);
+      }
+    };
+
+    fetchProgress();
+  }, [isOpen, movieId]);
 
   // Prevent body scroll when modal is open and focus the video
   useEffect(() => {
@@ -42,7 +90,7 @@ export default function VideoModal({ isOpen, onClose, src, poster, title }: Vide
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
-        onClose();
+        handleClose();
       } else if (e.key === 'h' || e.key === 'H') {
         e.preventDefault();
         setShowHelp(prev => !prev);
@@ -53,7 +101,7 @@ export default function VideoModal({ isOpen, onClose, src, poster, title }: Vide
       document.addEventListener('keydown', handleKeydown, true); // Use capture phase
       return () => document.removeEventListener('keydown', handleKeydown, true);
     }
-  }, [isOpen, onClose]);
+  }, [isOpen, handleClose]);
 
   if (!isOpen) return null;
 
@@ -72,7 +120,7 @@ export default function VideoModal({ isOpen, onClose, src, poster, title }: Vide
       onClick={(e) => {
         // Close on backdrop click (but not on video click)
         if (e.target === e.currentTarget) {
-          onClose();
+          handleClose();
         }
       }}
     >
@@ -83,13 +131,15 @@ export default function VideoModal({ isOpen, onClose, src, poster, title }: Vide
           poster={poster}
           title={title}
           className="max-w-full max-h-full"
-          onEscape={onClose}
+          onEscape={handleClose}
+          initialTime={initialTime}
+          onProgress={handleProgress}
         />
       </div>
       
       {/* Close Button */}
       <button
-        onClick={onClose}
+        onClick={handleClose}
         className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-colors backdrop-blur-sm"
         style={{
           position: 'absolute',
