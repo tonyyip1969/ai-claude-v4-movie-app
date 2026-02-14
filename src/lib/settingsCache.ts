@@ -17,6 +17,7 @@ class SettingsCache {
     showHeader: true,
     randomAutoLoadEnabled: false,
     randomAutoLoadIntervalSeconds: 10,
+    playHistoryLimit: 20,
   };
 
   /**

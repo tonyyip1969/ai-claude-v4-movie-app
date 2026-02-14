@@ -11,6 +11,7 @@ export interface SettingsData {
   showHeader: boolean;
   randomAutoLoadEnabled: boolean;
   randomAutoLoadIntervalSeconds: number;
+  playHistoryLimit: number;
 }
 
 const defaultSettings: SettingsData = {
@@ -20,6 +21,7 @@ const defaultSettings: SettingsData = {
   showHeader: true,
   randomAutoLoadEnabled: false,
   randomAutoLoadIntervalSeconds: 10,
+  playHistoryLimit: 20,
 };
 
 const STORAGE_KEY = 'movie-app-settings';
@@ -37,6 +39,7 @@ export function useSettings() {
       showHeader: settingsData.showHeader.toString(),
       randomAutoLoadEnabled: settingsData.randomAutoLoadEnabled.toString(),
       randomAutoLoadIntervalSeconds: settingsData.randomAutoLoadIntervalSeconds.toString(),
+      playHistoryLimit: settingsData.playHistoryLimit.toString(),
     };
   }, []);
 

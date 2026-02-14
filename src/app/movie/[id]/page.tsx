@@ -406,6 +406,7 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
         src={movie.videoUrl}
         poster={movie.coverUrl}
         title={movie.title}
+        movieId={movie.id}
       />
     </div>
   );

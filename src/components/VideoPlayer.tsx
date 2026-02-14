@@ -27,9 +27,11 @@ interface VideoPlayerProps {
   title?: string;
   className?: string;
   onEscape?: () => void;
+  initialTime?: number;
+  onProgress?: (currentTime: number, duration: number) => void;
 }
 
-export default function VideoPlayer({ src, poster, title, className, onEscape }: VideoPlayerProps) {
+export default function VideoPlayer({ src, poster, title, className, onEscape, initialTime = 0, onProgress }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hlsRef = useRef<any>(null);
@@ -43,6 +45,12 @@ export default function VideoPlayer({ src, poster, title, className, onEscape }:
   const [error, setError] = useState<string | null>(null);
   const [playbackRate, setPlaybackRate] = useState(1);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+  const hasSeekedToInitialTimeRef = useRef(false);
+
+
+  useEffect(() => {
+    hasSeekedToInitialTimeRef.current = false;
+  }, [src, initialTime]);
 
   // Check if video source is HLS (m3u8)
   const isHLS = src.toLowerCase().includes('.m3u8');
@@ -53,11 +61,18 @@ export default function VideoPlayer({ src, poster, title, className, onEscape }:
 
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
+
+      if (!hasSeekedToInitialTimeRef.current && Number.isFinite(initialTime) && initialTime > 0 && initialTime < video.duration) {
+        video.currentTime = initialTime;
+        hasSeekedToInitialTimeRef.current = true;
+      }
+
       setIsLoading(false);
     };
 
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime);
+      onProgress?.(video.currentTime, video.duration);
     };
 
     const handlePlay = () => {
@@ -66,6 +81,7 @@ export default function VideoPlayer({ src, poster, title, className, onEscape }:
 
     const handlePause = () => {
       setIsPlaying(false);
+      onProgress?.(video.currentTime, video.duration);
     };
 
     const handleVolumeChange = () => {
@@ -95,6 +111,7 @@ export default function VideoPlayer({ src, poster, title, className, onEscape }:
     video.addEventListener('ratechange', handleRateChange);
     video.addEventListener('error', handleError);
     video.addEventListener('loadstart', handleLoadStart);
+    video.addEventListener('ended', handlePause);
 
     return () => {
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
@@ -105,8 +122,9 @@ export default function VideoPlayer({ src, poster, title, className, onEscape }:
       video.removeEventListener('ratechange', handleRateChange);
       video.removeEventListener('error', handleError);
       video.removeEventListener('loadstart', handleLoadStart);
+      video.removeEventListener('ended', handlePause);
     };
-  }, []);
+  }, [initialTime, onProgress]);
 
   // HLS.js initialization for m3u8 streams
   useEffect(() => {

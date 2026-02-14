@@ -78,6 +78,17 @@ class MovieDatabase {
     `;
 
     this.db.exec(createSettingsTable);
+
+    // Create play history table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS play_history (
+        movie_id INTEGER PRIMARY KEY,
+        progress_seconds REAL NOT NULL,
+        duration_seconds REAL NOT NULL,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE
+      )
+    `);
   }
 
   /**
@@ -925,8 +936,101 @@ class MovieDatabase {
   clearSettings(): void {
     this.db.prepare('DELETE FROM app_settings').run();
   }
+
+  getPlaybackProgress(movieId: number): { movieId: number; progressSeconds: number; durationSeconds: number; updatedAt: string } | null {
+    const row = this.db.prepare(`
+      SELECT movie_id as movieId, progress_seconds as progressSeconds, duration_seconds as durationSeconds, updatedAt
+      FROM play_history
+      WHERE movie_id = ?
+    `).get(movieId) as { movieId: number; progressSeconds: number; durationSeconds: number; updatedAt: string } | undefined;
+
+    return row ?? null;
+  }
+
+  upsertPlaybackProgress(movieId: number, progressSeconds: number, durationSeconds: number): void {
+    // Clear history when movie is effectively finished
+    const completionThreshold = Math.max(durationSeconds - 5, durationSeconds * 0.95);
+    if (durationSeconds > 0 && progressSeconds >= completionThreshold) {
+      this.db.prepare('DELETE FROM play_history WHERE movie_id = ?').run(movieId);
+      return;
+    }
+
+    this.db.prepare(`
+      INSERT INTO play_history (movie_id, progress_seconds, duration_seconds, updatedAt)
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(movie_id) DO UPDATE SET
+        progress_seconds = excluded.progress_seconds,
+        duration_seconds = excluded.duration_seconds,
+        updatedAt = CURRENT_TIMESTAMP
+    `).run(movieId, progressSeconds, durationSeconds);
+  }
+
+  getPlaybackHistory(limit: number): Array<{ movieId: number; progressSeconds: number; durationSeconds: number; updatedAt: string; movie: Movie }> {
+    const rows = this.db.prepare(`
+      SELECT
+        ph.movie_id as movieId,
+        ph.progress_seconds as progressSeconds,
+        ph.duration_seconds as durationSeconds,
+        ph.updatedAt,
+        m.id,
+        m.code,
+        m.title,
+        m.description,
+        m.videoUrl,
+        m.coverUrl,
+        m.isFavourite,
+        m.isInWatchlist,
+        m.rating,
+        m.createdAt,
+        m.publishedAt
+      FROM play_history ph
+      JOIN movies m ON m.id = ph.movie_id
+      ORDER BY ph.updatedAt DESC
+      LIMIT ?
+    `).all(limit) as Array<{
+      movieId: number;
+      progressSeconds: number;
+      durationSeconds: number;
+      updatedAt: string;
+      id: number;
+      code: string;
+      title: string;
+      description: string;
+      videoUrl: string;
+      coverUrl: string;
+      isFavourite: number | boolean;
+      isInWatchlist: number | boolean;
+      rating: number;
+      createdAt: string;
+      publishedAt: string;
+    }>;
+
+    return rows.map((row) => {
+      const movie: Movie = {
+        id: row.id,
+        code: row.code,
+        title: row.title,
+        description: row.description,
+        videoUrl: row.videoUrl,
+        coverUrl: row.coverUrl,
+        isFavourite: Boolean(row.isFavourite),
+        isInWatchlist: Boolean(row.isInWatchlist),
+        rating: row.rating,
+        createdAt: row.createdAt,
+        publishedAt: row.publishedAt,
+        tags: this.getTagsForMovie(row.id),
+      };
+
+      return {
+        movieId: row.movieId,
+        progressSeconds: row.progressSeconds,
+        durationSeconds: row.durationSeconds,
+        updatedAt: row.updatedAt,
+        movie,
+      };
+    });
+  }
 }
 
 // Export singleton instance
 export const movieDB = new MovieDatabase();
-

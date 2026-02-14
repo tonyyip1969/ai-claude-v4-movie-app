@@ -17,6 +17,7 @@ export class SettingsMigration {
     showHeader: true,
     randomAutoLoadEnabled: false,
     randomAutoLoadIntervalSeconds: 10,
+    playHistoryLimit: 20,
   };
 
   /**
@@ -79,6 +80,7 @@ export class SettingsMigration {
         showHeader: settings.showHeader.toString(),
         randomAutoLoadEnabled: settings.randomAutoLoadEnabled.toString(),
         randomAutoLoadIntervalSeconds: settings.randomAutoLoadIntervalSeconds.toString(),
+        playHistoryLimit: settings.playHistoryLimit.toString(),
       };
 
       const response = await fetch('/api/settings', {
@@ -218,6 +220,13 @@ export class SettingsMigration {
       const randomAutoLoadIntervalSeconds = parseInt(rawSettings.randomAutoLoadIntervalSeconds, 10);
       if (!isNaN(randomAutoLoadIntervalSeconds) && randomAutoLoadIntervalSeconds > 0) {
         parsed.randomAutoLoadIntervalSeconds = randomAutoLoadIntervalSeconds;
+      }
+    }
+
+    if (rawSettings.playHistoryLimit) {
+      const playHistoryLimit = parseInt(rawSettings.playHistoryLimit, 10);
+      if (!isNaN(playHistoryLimit) && playHistoryLimit > 0) {
+        parsed.playHistoryLimit = playHistoryLimit;
       }
     }
     
