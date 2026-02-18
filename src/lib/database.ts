@@ -465,6 +465,7 @@ class MovieDatabase {
     publishedAt?: string;
     coverUrl?: string;
     videoUrl?: string;
+    rating?: number;
     tags?: string[];
   }): boolean {
     const movie = this.getMovieById(id);
@@ -517,6 +518,10 @@ class MovieDatabase {
       validationErrors.push('Published date must be a valid date');
     }
 
+    if (updates.rating !== undefined && (updates.rating < 1 || updates.rating > 10)) {
+      validationErrors.push('Rating must be between 1 and 10');
+    }
+
     if (validationErrors.length > 0) {
       throw new Error(validationErrors.join('; '));
     }
@@ -558,6 +563,11 @@ class MovieDatabase {
     if (updates.videoUrl !== undefined) {
       updateFields.push('videoUrl = ?');
       updateValues.push(updates.videoUrl.trim());
+    }
+
+    if (updates.rating !== undefined) {
+      updateFields.push('rating = ?');
+      updateValues.push(updates.rating);
     }
 
     if (updateFields.length === 0) {
