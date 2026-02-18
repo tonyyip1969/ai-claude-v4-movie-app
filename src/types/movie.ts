@@ -36,6 +36,7 @@ export interface MovieUpdatePayload {
   publishedAt?: string;
   coverUrl?: string;
   videoUrl?: string;
+  rating?: number;
   tags?: string[];
 }
 

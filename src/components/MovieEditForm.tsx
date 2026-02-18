@@ -299,6 +299,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
         if (formData.publishedAt !== (movie.publishedAt || '')) updates.publishedAt = formData.publishedAt;
         if (formData.coverUrl !== (movie.coverUrl || '')) updates.coverUrl = formData.coverUrl;
         if (formData.videoUrl !== (movie.videoUrl || '')) updates.videoUrl = formData.videoUrl;
+        if (formData.rating !== (movie.rating || 5)) updates.rating = formData.rating;
 
         // Always include tags if they changed, or just include them if we want to be safe
         // The check is in handleChange, so if we are here and dirty, we might have tag changes.
