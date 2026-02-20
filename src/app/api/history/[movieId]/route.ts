@@ -63,3 +63,24 @@ export async function POST(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { movieId: string } }
+) {
+  try {
+    const movieId = parseInt(params.movieId, 10);
+    if (Number.isNaN(movieId)) {
+      return NextResponse.json({ error: 'Invalid movie ID' }, { status: 400 });
+    }
+
+    movieDB.deletePlaybackHistory(movieId);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting playback progress:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete playback progress' },
+      { status: 500 }
+    );
+  }
+}

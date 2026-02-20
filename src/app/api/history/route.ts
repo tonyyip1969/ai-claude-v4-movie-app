@@ -29,3 +29,16 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE() {
+  try {
+    movieDB.clearPlaybackHistory();
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error clearing playback history:', error);
+    return NextResponse.json(
+      { error: 'Failed to clear playback history' },
+      { status: 500 }
+    );
+  }
+}

@@ -1040,6 +1040,14 @@ class MovieDatabase {
       };
     });
   }
+
+  deletePlaybackHistory(movieId: number): void {
+    this.db.prepare('DELETE FROM play_history WHERE movie_id = ?').run(movieId);
+  }
+
+  clearPlaybackHistory(): void {
+    this.db.prepare('DELETE FROM play_history').run();
+  }
 }
 
 // Export singleton instance

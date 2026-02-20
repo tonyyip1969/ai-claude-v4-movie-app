@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Clock, History, PlayCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Clock, History, PlayCircle, Trash2 } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 import { MoviePlayHistory } from '@/types/movie';
 import VideoModal from '@/components/VideoModal';
@@ -54,6 +55,48 @@ export default function HistoryPage() {
     await fetchHistory();
   };
 
+  const handleDeleteHistoryItem = async (movieId: number) => {
+    try {
+      const response = await fetch(`/api/history/${movieId}`, { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error(`Failed to delete history item: ${response.status}`);
+      }
+      await fetchHistory();
+    } catch (err) {
+      console.error(err);
+      setError('Could not delete playback history item.');
+    }
+  };
+
+  const handleDeleteAllHistory = async () => {
+    try {
+      const response = await fetch('/api/history', { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error(`Failed to delete all history: ${response.status}`);
+      }
+      await fetchHistory();
+    } catch (err) {
+      console.error(err);
+      setError('Could not clear playback history.');
+    }
+  };
+
+  const formatWatchedDateTime = (updatedAt: string) => {
+    const isoUtcString = updatedAt.includes('T')
+      ? (updatedAt.endsWith('Z') ? updatedAt : `${updatedAt}Z`)
+      : `${updatedAt.replace(' ', 'T')}Z`;
+
+    const parsedDate = new Date(isoUtcString);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return updatedAt;
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(parsedDate);
+  };
+
   return (
     <div className="space-y-8">
       {settings.showHeader && (
@@ -83,6 +126,14 @@ export default function HistoryPage() {
             </span>
           )}
         </div>
+        <button
+          onClick={handleDeleteAllHistory}
+          disabled={isLoading || history.length === 0}
+          className="inline-flex items-center justify-center gap-2 bg-red-700/80 hover:bg-red-800 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+          Remove all histories
+        </button>
       </div>
 
       {isLoading && <p className="text-gray-400">Loading playback history...</p>}
@@ -104,18 +155,20 @@ export default function HistoryPage() {
             <div key={entry.movieId} className="bg-gray-800/40 border border-gray-700 rounded-xl p-4">
               <div className="flex gap-4">
                 <div className="relative w-48 shrink-0 aspect-video rounded-lg overflow-hidden bg-gray-800">
-                  <Image
-                    src={entry.movie.coverUrl}
-                    alt={entry.movie.title}
-                    fill
-                    className="object-cover"
-                    sizes="192px"
-                  />
+                  <Link href={`/movie/${entry.movieId}`} className="block h-full w-full">
+                    <Image
+                      src={entry.movie.coverUrl}
+                      alt={entry.movie.title}
+                      fill
+                      className="object-cover hover:scale-105 transition-transform"
+                      sizes="192px"
+                    />
+                  </Link>
                 </div>
                 <div className="flex-1 min-w-0 space-y-3">
                   <div>
                     <h2 className="text-xl font-semibold text-white truncate">{entry.movie.title}</h2>
-                    <p className="text-sm text-gray-400">Last watched {new Date(entry.updatedAt).toLocaleString()}</p>
+                    <p className="text-sm text-gray-400">Last watched {formatWatchedDateTime(entry.updatedAt)}</p>
                   </div>
 
                   <div>
@@ -127,13 +180,22 @@ export default function HistoryPage() {
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => setActiveEntry(entry)}
-                    className="inline-flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-                  >
-                    <PlayCircle className="w-4 h-4" />
-                    Continue watching
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setActiveEntry(entry)}
+                      className="inline-flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                    >
+                      <PlayCircle className="w-4 h-4" />
+                      Continue watching
+                    </button>
+                    <button
+                      onClick={() => handleDeleteHistoryItem(entry.movieId)}
+                      className="inline-flex items-center gap-2 bg-red-700/80 hover:bg-red-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Remove
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
