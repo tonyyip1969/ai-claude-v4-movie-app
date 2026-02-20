@@ -17,6 +17,7 @@ interface VideoModalProps {
 export default function VideoModal({ isOpen, onClose, src, poster, title, movieId }: VideoModalProps) {
   const [showHelp, setShowHelp] = useState(false);
   const [initialTime, setInitialTime] = useState(0);
+  const [isProgressLoaded, setIsProgressLoaded] = useState(false);
   const latestProgressRef = useRef<{ currentTime: number; duration: number } | null>(null);
 
 
@@ -50,14 +51,22 @@ export default function VideoModal({ isOpen, onClose, src, poster, title, movieI
   useEffect(() => {
     if (!isOpen) return;
 
+    setIsProgressLoaded(false);
+
     const fetchProgress = async () => {
       try {
         const response = await fetch(`/api/history/${movieId}`);
-        if (!response.ok) return;
+        if (!response.ok) {
+          setInitialTime(0);
+          return;
+        }
         const data = await response.json();
         setInitialTime(data.progress?.progressSeconds || 0);
       } catch (error) {
         console.error('Failed to fetch playback progress:', error);
+        setInitialTime(0);
+      } finally {
+        setIsProgressLoaded(true);
       }
     };
 
@@ -126,15 +135,19 @@ export default function VideoModal({ isOpen, onClose, src, poster, title, movieI
     >
       {/* Video Player */}
       <div className="w-full h-full flex items-center justify-center">
-        <VideoPlayer
-          src={src}
-          poster={poster}
-          title={title}
-          className="max-w-full max-h-full"
-          onEscape={handleClose}
-          initialTime={initialTime}
-          onProgress={handleProgress}
-        />
+        {isProgressLoaded ? (
+          <VideoPlayer
+            src={src}
+            poster={poster}
+            title={title}
+            className="max-w-full max-h-full"
+            onEscape={handleClose}
+            initialTime={initialTime}
+            onProgress={handleProgress}
+          />
+        ) : (
+          <div className="animate-spin w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full" />
+        )}
       </div>
       
       {/* Close Button */}

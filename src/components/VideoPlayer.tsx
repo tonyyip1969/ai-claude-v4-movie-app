@@ -126,6 +126,17 @@ export default function VideoPlayer({ src, poster, title, className, onEscape, i
     };
   }, [initialTime, onProgress]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!hasSeekedToInitialTimeRef.current && Number.isFinite(initialTime) && initialTime > 0 && Number.isFinite(video.duration) && video.duration > 0 && initialTime < video.duration) {
+      video.currentTime = initialTime;
+      setCurrentTime(initialTime);
+      hasSeekedToInitialTimeRef.current = true;
+    }
+  }, [initialTime, duration]);
+
   // HLS.js initialization for m3u8 streams
   useEffect(() => {
     const video = videoRef.current;
