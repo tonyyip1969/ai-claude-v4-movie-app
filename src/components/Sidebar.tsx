@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Heart, Shuffle, Menu, X, Film, Clock, Settings, Upload, Tag } from 'lucide-react';
+import { Home, Heart, Shuffle, Menu, X, Film, Clock, Settings, Upload, Tag, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useMovieCounts } from '@/hooks/use-movie-counts';
@@ -16,6 +16,7 @@ const navigation = [
   { name: 'Random', href: '/random', icon: Shuffle },
   { name: 'Import', href: '/import', icon: Upload },
   { name: 'Tags', href: '/tags', icon: Tag },
+  { name: 'History', href: '/history', icon: History },
 ];
 
 const bottomNavigation = [
