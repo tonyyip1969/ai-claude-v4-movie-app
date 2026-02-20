@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
-import { History, PlayCircle } from 'lucide-react';
+import { Clock, History, PlayCircle } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 import { MoviePlayHistory } from '@/types/movie';
 import VideoModal from '@/components/VideoModal';
@@ -59,11 +59,11 @@ export default function HistoryPage() {
       {settings.showHeader && (
         <div className="text-center space-y-6">
           <div className="flex items-center justify-center space-x-3 mb-4">
-            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl">
+            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-400 to-green-500 rounded-xl">
               <History className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-4xl lg:text-5xl font-bold text-white">
-              Watch <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">History</span>
+              Watch <span className="bg-gradient-to-r from-green-400 to-green-500 bg-clip-text text-transparent">History</span>
             </h1>
           </div>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
@@ -71,6 +71,19 @@ export default function HistoryPage() {
           </p>
         </div>
       )}
+
+      {/* Control Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center space-x-3">
+          <Clock className="w-6 h-6 text-green-400" />
+          <h2 className="text-2xl font-bold text-white">History List</h2>
+          {!isLoading && (
+            <span className="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-sm">
+              {history.length} {history.length === 1 ? 'movie' : 'movies'}
+            </span>
+          )}
+        </div>
+      </div>
 
       {isLoading && <p className="text-gray-400">Loading playback history...</p>}
       {error && <p className="text-red-400">{error}</p>}
@@ -107,7 +120,7 @@ export default function HistoryPage() {
 
                   <div>
                     <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                      <div className="h-full bg-cyan-500" style={{ width: `${progressPercent}%` }} />
+                      <div className="h-full bg-green-600" style={{ width: `${progressPercent}%` }} />
                     </div>
                     <p className="text-xs text-gray-400 mt-1">
                       {formatTime(entry.progressSeconds)} / {formatTime(entry.durationSeconds)}
@@ -116,7 +129,7 @@ export default function HistoryPage() {
 
                   <button
                     onClick={() => setActiveEntry(entry)}
-                    className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                    className="inline-flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                   >
                     <PlayCircle className="w-4 h-4" />
                     Continue watching

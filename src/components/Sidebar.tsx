@@ -13,13 +13,13 @@ const navigation = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Favourites', href: '/favorites', icon: Heart },
   { name: 'Watch List', href: '/watchlist', icon: Clock },
-  { name: 'Random', href: '/random', icon: Shuffle },
-  { name: 'Import', href: '/import', icon: Upload },
-  { name: 'Tags', href: '/tags', icon: Tag },
   { name: 'History', href: '/history', icon: History },
+  { name: 'Random', href: '/random', icon: Shuffle },
+  { name: 'Tags', href: '/tags', icon: Tag },
 ];
 
 const bottomNavigation = [
+  { name: 'Import', href: '/import', icon: Upload },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
