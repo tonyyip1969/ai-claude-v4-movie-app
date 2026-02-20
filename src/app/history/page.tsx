@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { History, PlayCircle } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 import { MoviePlayHistory } from '@/types/movie';
+import VideoModal from '@/components/VideoModal';
 
 const formatTime = (seconds: number) => {
   if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
@@ -23,6 +23,7 @@ export default function HistoryPage() {
   const [history, setHistory] = useState<MoviePlayHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeEntry, setActiveEntry] = useState<MoviePlayHistory | null>(null);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -108,19 +109,30 @@ export default function HistoryPage() {
                     </p>
                   </div>
 
-                  <Link
-                    href={`/movie/${entry.movieId}`}
+                  <button
+                    onClick={() => setActiveEntry(entry)}
                     className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                   >
                     <PlayCircle className="w-4 h-4" />
                     Continue watching
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
           );
         })}
       </div>
+
+      {activeEntry && (
+        <VideoModal
+          isOpen={true}
+          onClose={() => setActiveEntry(null)}
+          src={activeEntry.movie.videoUrl}
+          poster={activeEntry.movie.coverUrl}
+          title={activeEntry.movie.title}
+          movieId={activeEntry.movieId}
+        />
+      )}
     </div>
   );
 }
