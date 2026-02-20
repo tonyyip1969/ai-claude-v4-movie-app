@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { History, PlayCircle } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
@@ -25,29 +25,34 @@ export default function HistoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeEntry, setActiveEntry] = useState<MoviePlayHistory | null>(null);
 
-  useEffect(() => {
+  const fetchHistory = useCallback(async () => {
     if (!isLoaded) return;
 
-    const fetchHistory = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`/api/history?limit=${settings.playHistoryLimit}`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch history: ${response.status}`);
-        }
-        const data = await response.json();
-        setHistory(data.history || []);
-      } catch (err) {
-        console.error(err);
-        setError('Could not load playback history.');
-      } finally {
-        setIsLoading(false);
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/history?limit=${settings.playHistoryLimit}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch history: ${response.status}`);
       }
-    };
-
-    fetchHistory();
+      const data = await response.json();
+      setHistory(data.history || []);
+    } catch (err) {
+      console.error(err);
+      setError('Could not load playback history.');
+    } finally {
+      setIsLoading(false);
+    }
   }, [isLoaded, settings.playHistoryLimit]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  const handleCloseVideo = async () => {
+    setActiveEntry(null);
+    await fetchHistory();
+  };
 
   return (
     <div className="space-y-8">
@@ -126,7 +131,7 @@ export default function HistoryPage() {
       {activeEntry && (
         <VideoModal
           isOpen={true}
-          onClose={() => setActiveEntry(null)}
+          onClose={handleCloseVideo}
           src={activeEntry.movie.videoUrl}
           poster={activeEntry.movie.coverUrl}
           title={activeEntry.movie.title}
