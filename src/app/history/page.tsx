@@ -69,6 +69,11 @@ export default function HistoryPage() {
   };
 
   const handleDeleteAllHistory = async () => {
+    const isConfirmed = window.confirm('Are you sure you want to remove all watch histories?');
+    if (!isConfirmed) {
+      return;
+    }
+
     try {
       const response = await fetch('/api/history', { method: 'DELETE' });
       if (!response.ok) {
