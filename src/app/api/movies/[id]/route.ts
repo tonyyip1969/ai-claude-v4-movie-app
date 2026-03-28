@@ -140,7 +140,7 @@ export async function PATCH(
       }
 
       // Validate allowed fields
-      const allowedFields = ['title', 'description', 'code', 'publishedAt', 'coverUrl', 'videoUrl', 'rating', 'tags'];
+      const allowedFields = ['title', 'description', 'code', 'publishedAt', 'coverUrl', 'videoUrl', 'sourceUrl', 'rating', 'tags'];
       const updateKeys = Object.keys(updates);
       const invalidFields = updateKeys.filter(key => !allowedFields.includes(key));
 

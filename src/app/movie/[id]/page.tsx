@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowLeft, Heart, Play, Star, Calendar, Code, Film, Clock, Edit } from 'lucide-react';
+import { ArrowLeft, Heart, Play, Star, Calendar, Code, Film, Clock, Edit, ExternalLink } from 'lucide-react';
 import { Movie } from '@/types/movie';
 import VideoModal from '@/components/VideoModal';
 import RatingComponent from '@/components/RatingComponent';
@@ -289,6 +289,18 @@ function MovieDetailContent({ params }: MovieDetailPageProps) {
                   <Edit className="w-5 h-5" />
                   <span>Edit Movie</span>
                 </button>
+
+                {movie.sourceUrl && (
+                  <a
+                    href={movie.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center space-x-2 border-2 border-emerald-500/40 text-emerald-300 hover:text-emerald-200 hover:border-emerald-400/60 hover:bg-emerald-700/20 font-semibold px-8 py-4 rounded-lg transition-all"
+                  >
+                    <ExternalLink className="w-5 h-5" />
+                    <span>Open Source URL</span>
+                  </a>
+                )}
               </div>
             </div>
 

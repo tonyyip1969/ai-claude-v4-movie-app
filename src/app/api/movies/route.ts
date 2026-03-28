@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
       code: body.code,
       videoUrl: body.videoUrl,
       coverUrl: body.coverUrl,
+      sourceUrl: body.sourceUrl,
       description: body.description,
       publishedAt: body.publishedAt,
       rating: body.rating,

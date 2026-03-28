@@ -41,6 +41,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
     publishedAt: new Date().toISOString().split('T')[0], // Today's date
     coverUrl: '',
     videoUrl: '',
+    sourceUrl: '',
     rating: 5, // Default rating
     tags: [] as string[],
   });
@@ -53,6 +54,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
       publishedAt: movie?.publishedAt || '',
       coverUrl: movie?.coverUrl || '',
       videoUrl: movie?.videoUrl || '',
+      sourceUrl: movie?.sourceUrl || '',
       rating: movie?.rating || 5,
       tags: movie?.tags || [],
     }
@@ -104,13 +106,14 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
   // Initialize form data
   useEffect(() => {
     if (mode === 'edit' && movie) {
-      const initialData = {
+        const initialData = {
         title: movie.title || '',
         description: movie.description || '',
         code: movie.code || '',
         publishedAt: movie.publishedAt || '',
         coverUrl: movie.coverUrl || '',
         videoUrl: movie.videoUrl || '',
+        sourceUrl: movie.sourceUrl || '',
         rating: movie.rating || 5,
         tags: movie.tags || [],
       };
@@ -214,6 +217,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
           publishedAt: movie.publishedAt || '',
           coverUrl: movie.coverUrl || '',
           videoUrl: movie.videoUrl || '',
+          sourceUrl: movie.sourceUrl || '',
           rating: movie.rating || 5,
           tags: movie.tags || [],
         };
@@ -283,6 +287,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
           coverUrl: formData.coverUrl.trim(),
           description: formData.description.trim() || undefined,
           publishedAt: formData.publishedAt || undefined,
+          sourceUrl: formData.sourceUrl.trim() || undefined,
           rating: formData.rating,
           tags: currentTags,
         };
@@ -299,6 +304,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
         if (formData.publishedAt !== (movie.publishedAt || '')) updates.publishedAt = formData.publishedAt;
         if (formData.coverUrl !== (movie.coverUrl || '')) updates.coverUrl = formData.coverUrl;
         if (formData.videoUrl !== (movie.videoUrl || '')) updates.videoUrl = formData.videoUrl;
+        if (formData.sourceUrl !== (movie.sourceUrl || '')) updates.sourceUrl = formData.sourceUrl;
         if (formData.rating !== (movie.rating || 5)) updates.rating = formData.rating;
 
         // Always include tags if they changed, or just include them if we want to be safe
@@ -543,6 +549,22 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
               value={formData.videoUrl}
               onChange={(e) => handleChange('videoUrl', e.target.value)}
               placeholder="https://example.com/video.mp4"
+              disabled={isFormDisabled}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+
+          {/* Source URL */}
+          <div className="mb-6">
+            <label htmlFor="sourceUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Source URL
+            </label>
+            <input
+              id="sourceUrl"
+              type="url"
+              value={formData.sourceUrl}
+              onChange={(e) => handleChange('sourceUrl', e.target.value)}
+              placeholder="https://example.com/movie-source-page"
               disabled={isFormDisabled}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white"
             />
