@@ -32,6 +32,7 @@ class MovieDatabase {
         description TEXT,
         videoUrl TEXT NOT NULL,
         coverUrl TEXT NOT NULL,
+        sourceUrl TEXT,
         isFavourite BOOLEAN DEFAULT FALSE,
         isInWatchlist BOOLEAN DEFAULT FALSE,
         rating INTEGER CHECK(rating >= 1 AND rating <= 10),
@@ -45,6 +46,13 @@ class MovieDatabase {
     // Add isInWatchlist column if it doesn't exist (for existing databases)
     try {
       this.db.exec(`ALTER TABLE movies ADD COLUMN isInWatchlist BOOLEAN DEFAULT FALSE`);
+    } catch {
+      // Column already exists or other error, ignore
+    }
+
+    // Add sourceUrl column if it doesn't exist (for existing databases)
+    try {
+      this.db.exec(`ALTER TABLE movies ADD COLUMN sourceUrl TEXT`);
     } catch {
       // Column already exists or other error, ignore
     }
@@ -476,6 +484,7 @@ class MovieDatabase {
     publishedAt?: string;
     coverUrl?: string;
     videoUrl?: string;
+    sourceUrl?: string;
     rating?: number;
     tags?: string[];
   }): boolean {
@@ -523,6 +532,10 @@ class MovieDatabase {
       } else if (!this.isValidUrl(updates.coverUrl)) {
         validationErrors.push('Cover URL must be a valid URL');
       }
+    }
+
+    if (updates.sourceUrl !== undefined && updates.sourceUrl.trim() && !this.isValidUrl(updates.sourceUrl)) {
+      validationErrors.push('Source URL must be a valid URL');
     }
 
     if (updates.publishedAt !== undefined && updates.publishedAt.trim() && !this.isValidDate(updates.publishedAt)) {
@@ -574,6 +587,11 @@ class MovieDatabase {
     if (updates.videoUrl !== undefined) {
       updateFields.push('videoUrl = ?');
       updateValues.push(updates.videoUrl.trim());
+    }
+
+    if (updates.sourceUrl !== undefined) {
+      updateFields.push('sourceUrl = ?');
+      updateValues.push(updates.sourceUrl.trim() || null);
     }
 
     if (updates.rating !== undefined) {
@@ -677,6 +695,10 @@ class MovieDatabase {
       validationErrors.push('Description must be 1000 characters or less');
     }
 
+    if (movieData.sourceUrl && movieData.sourceUrl.trim() && !this.isValidUrl(movieData.sourceUrl)) {
+      validationErrors.push('Source URL must be a valid URL');
+    }
+
     if (movieData.publishedAt && !this.isValidDate(movieData.publishedAt)) {
       validationErrors.push('Published date must be a valid date');
     }
@@ -691,8 +713,8 @@ class MovieDatabase {
 
     // Insert the movie
     const stmt = this.db.prepare(`
-      INSERT INTO movies (code, title, description, videoUrl, coverUrl, rating, publishedAt, isFavourite, isInWatchlist)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
+      INSERT INTO movies (code, title, description, videoUrl, coverUrl, sourceUrl, rating, publishedAt, isFavourite, isInWatchlist)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
     `);
 
     let newMovieId: number | bigint;
@@ -704,6 +726,7 @@ class MovieDatabase {
         movieData.description?.trim() || '',
         movieData.videoUrl.trim(),
         movieData.coverUrl.trim(),
+        movieData.sourceUrl?.trim() || null,
         rating,
         publishedAt
       );

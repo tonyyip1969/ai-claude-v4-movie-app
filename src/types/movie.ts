@@ -5,6 +5,7 @@ export interface Movie {
   description: string;
   videoUrl: string;
   coverUrl: string;
+  sourceUrl?: string;
   isFavourite: boolean;
   isInWatchlist: boolean;
   rating: number;
@@ -36,6 +37,7 @@ export interface MovieUpdatePayload {
   publishedAt?: string;
   coverUrl?: string;
   videoUrl?: string;
+  sourceUrl?: string;
   rating?: number;
   tags?: string[];
 }
@@ -51,6 +53,7 @@ export interface MovieFormData {
   publishedAt: string;
   coverUrl: string;
   videoUrl: string;
+  sourceUrl: string;
   tags: string;
 }
 
@@ -65,6 +68,7 @@ export interface MovieValidationErrors {
   publishedAt?: string[];
   coverUrl?: string[];
   videoUrl?: string[];
+  sourceUrl?: string[];
   tags?: string[];
   general?: string[];
 }
@@ -94,6 +98,7 @@ export interface MovieCreatePayload {
   // Optional fields
   description?: string;
   publishedAt?: string; // Will default to today if not provided
+  sourceUrl?: string;
   rating?: number;      // Will default to 5 if not provided
   tags?: string[];
 }
@@ -109,6 +114,7 @@ export interface MovieCreateFormData {
   publishedAt: string;  // Will be pre-filled with today's date
   coverUrl: string;
   videoUrl: string;
+  sourceUrl: string;
   rating: number;       // Will be pre-filled with 5
   tags: string;
 }
