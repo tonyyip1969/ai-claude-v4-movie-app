@@ -518,12 +518,15 @@ class MovieDatabase {
       }
     }
 
-    if (updates.videoUrl !== undefined) {
-      if (!updates.videoUrl.trim()) {
-        validationErrors.push('Video URL cannot be empty');
-      } else if (!this.isValidUrl(updates.videoUrl)) {
-        validationErrors.push('Video URL must be a valid URL');
-      }
+    const nextVideoUrl = updates.videoUrl !== undefined ? updates.videoUrl : movie.videoUrl;
+    const nextSourceUrl = updates.sourceUrl !== undefined ? updates.sourceUrl : movie.sourceUrl;
+
+    if (!nextVideoUrl?.trim() && !nextSourceUrl?.trim()) {
+      validationErrors.push('Either Video URL or Source URL is required');
+    }
+
+    if (updates.videoUrl !== undefined && updates.videoUrl.trim() && !this.isValidUrl(updates.videoUrl)) {
+      validationErrors.push('Video URL must be a valid URL');
     }
 
     if (updates.coverUrl !== undefined) {
@@ -679,9 +682,11 @@ class MovieDatabase {
       validationErrors.push('Movie code already exists');
     }
 
-    if (!movieData.videoUrl?.trim()) {
-      validationErrors.push('Video URL is required');
-    } else if (!this.isValidUrl(movieData.videoUrl)) {
+    if (!movieData.videoUrl?.trim() && !movieData.sourceUrl?.trim()) {
+      validationErrors.push('Either Video URL or Source URL is required');
+    }
+
+    if (movieData.videoUrl?.trim() && !this.isValidUrl(movieData.videoUrl)) {
       validationErrors.push('Video URL must be a valid URL');
     }
 
@@ -724,7 +729,7 @@ class MovieDatabase {
         movieData.code.trim(),
         movieData.title.trim(),
         movieData.description?.trim() || '',
-        movieData.videoUrl.trim(),
+        movieData.videoUrl?.trim() || '',
         movieData.coverUrl.trim(),
         movieData.sourceUrl?.trim() || null,
         rating,
