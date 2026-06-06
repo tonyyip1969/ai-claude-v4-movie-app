@@ -64,6 +64,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [urlPairError, setUrlPairError] = useState<string | null>(null);
 
   // Tag management state
   const [tagInput, setTagInput] = useState('');
@@ -132,6 +133,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
     setIsDirty(false);
     setShowImagePreview(false);
     setImageError(false);
+    setUrlPairError(null);
     setTagInput('');
     // Reset code validation state
     setIsCodeValidating(false);
@@ -206,7 +208,7 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
       if (mode === 'create') {
         // In create mode, form is dirty if any required field has content
         const hasContent = newData.title.trim() || newData.code.trim() ||
-          newData.videoUrl.trim() || newData.coverUrl.trim();
+          newData.videoUrl.trim() || newData.sourceUrl.trim() || newData.coverUrl.trim();
         setIsDirty(!!hasContent);
       } else if (mode === 'edit' && movie) {
         // In edit mode, check against original values
@@ -234,6 +236,11 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
         });
         setIsDirty(dirty);
       }
+      if ((field === 'videoUrl' || field === 'sourceUrl') &&
+        (newData.videoUrl.trim() || newData.sourceUrl.trim())) {
+        setUrlPairError(null);
+      }
+
       return newData;
     });
   };
@@ -270,6 +277,13 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.videoUrl.trim() && !formData.sourceUrl.trim()) {
+      setUrlPairError('Either Video URL or Source URL is required');
+      return;
+    }
+
+    setUrlPairError(null);
 
     // Add any pending tag input
     const currentTags = [...formData.tags];
@@ -538,10 +552,10 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
             </div>
           </div>
 
-          {/* Video URL */}
+          {/* Video URL / Source URL */}
           <div className="mb-6">
             <label htmlFor="videoUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Video URL <span className="text-red-500">*</span>
+              Video URL
             </label>
             <input
               id="videoUrl"
@@ -550,7 +564,9 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
               onChange={(e) => handleChange('videoUrl', e.target.value)}
               placeholder="https://example.com/video.mp4"
               disabled={isFormDisabled}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white"
+              aria-describedby={urlPairError ? 'url-pair-error' : 'url-pair-help'}
+              aria-invalid={!!urlPairError}
+              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white ${urlPairError ? 'border-red-300 dark:border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'}`}
             />
           </div>
 
@@ -566,8 +582,22 @@ export const MovieEditForm = forwardRef<MovieEditFormRef, MovieEditFormProps>(({
               onChange={(e) => handleChange('sourceUrl', e.target.value)}
               placeholder="https://example.com/movie-source-page"
               disabled={isFormDisabled}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white"
+              aria-describedby={urlPairError ? 'url-pair-error' : 'url-pair-help'}
+              aria-invalid={!!urlPairError}
+              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-white ${urlPairError ? 'border-red-300 dark:border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600'}`}
             />
+            {urlPairError ? (
+              <p id="url-pair-error" role="alert" className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {urlPairError}
+              </p>
+            ) : (
+              <p id="url-pair-help" className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Provide either a direct video URL or a source URL. At least one is required.
+              </p>
+            )}
           </div>
 
           {/* Cover URL with Preview */}

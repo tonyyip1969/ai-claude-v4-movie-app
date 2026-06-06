@@ -75,9 +75,9 @@ export async function POST(request: NextRequest) {
     const movieData: MovieCreatePayload = {
       title: body.title,
       code: body.code,
-      videoUrl: body.videoUrl,
+      videoUrl: body.videoUrl ?? '',
       coverUrl: body.coverUrl,
-      sourceUrl: body.sourceUrl,
+      sourceUrl: body.sourceUrl ?? '',
       description: body.description,
       publishedAt: body.publishedAt,
       rating: body.rating,
@@ -85,12 +85,19 @@ export async function POST(request: NextRequest) {
     };
 
     // Validate required fields
-    const requiredFields = ['title', 'code', 'videoUrl', 'coverUrl'];
+    const requiredFields = ['title', 'code', 'coverUrl'];
     const missingFields = requiredFields.filter(field => !movieData[field as keyof MovieCreatePayload]?.toString().trim());
 
     if (missingFields.length > 0) {
       return NextResponse.json(
         { error: `Missing required fields: ${missingFields.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    if (!movieData.videoUrl?.trim() && !movieData.sourceUrl?.trim()) {
+      return NextResponse.json(
+        { error: 'Either videoUrl or sourceUrl is required' },
         { status: 400 }
       );
     }
